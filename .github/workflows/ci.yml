@@ -1,0 +1,114 @@
+name: ci
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch-name:
+    name: Check branch name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        run: |
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "Branch: $BRANCH"
+          if ! echo "$BRANCH" | grep -qE '^(feature|fix|chore|docs|test|refactor)/[a-z0-9]+(-[a-z0-9]+)*$'; then
+            echo "Invalid branch name: $BRANCH"
+            echo "Expected format: type/short-description"
+            echo "Valid types: feature, fix, chore, docs, test, refactor"
+            echo "Example: feature/truck-assignment"
+            exit 1
+          fi
+          echo "Branch name is valid"
+
+  check-commit-messages:
+    name: Check commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate commit messages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            COMMITS=$(git log --format="%s" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            COMMITS=$(git log --format="%s" -1)
+          fi
+
+          VALID_TYPES="feat|fix|chore|docs|test|refactor"
+          FAILED=0
+
+          while IFS= read -r MSG; do
+            if [ -z "$MSG" ]; then
+              continue
+            fi
+            echo "Checking: $MSG"
+            if ! echo "$MSG" | grep -qE "^($VALID_TYPES): .+"; then
+              echo "Invalid commit message: $MSG"
+              echo "Expected format: type: description"
+              echo "Valid types: feat, fix, chore, docs, test, refactor"
+              echo "Example: feat: add optimal truck selector"
+              FAILED=1
+            fi
+          done <<< "$COMMITS"
+
+          if [ "$FAILED" = "1" ]; then
+            exit 1
+          fi
+          echo "All commit messages are valid"
+
+  build-and-coverage:
+    name: Build and check coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Build and run tests with coverage
+        run: mvn verify -B
+
+      - name: Check coverage is 100%
+        run: |
+          REPORT="target/site/jacoco/jacoco.xml"
+          if [ ! -f "$REPORT" ]; then
+            echo "JaCoCo report not found. Make sure jacoco-maven-plugin is configured."
+            exit 1
+          fi
+
+          MISSED=$(grep -oP 'missed="\K[0-9]+' "$REPORT" | awk '{s+=$1} END {print s}')
+          COVERED=$(grep -oP 'covered="\K[0-9]+' "$REPORT" | awk '{s+=$1} END {print s}')
+          TOTAL=$((MISSED + COVERED))
+
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "No instructions found in coverage report."
+            exit 1
+          fi
+
+          COVERAGE=$((COVERED * 100 / TOTAL))
+          echo "Coverage: $COVERAGE% ($COVERED/$TOTAL instructions)"
+
+          if [ "$COVERAGE" -lt 100 ]; then
+            echo "Coverage is below 100%. Build failed."
+            exit 1
+          fi
+
+          echo "Coverage is 100%. All good."

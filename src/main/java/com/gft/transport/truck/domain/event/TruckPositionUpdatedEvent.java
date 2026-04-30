@@ -1,0 +1,1 @@
+package com.gft.transport.truck.domain.event;
