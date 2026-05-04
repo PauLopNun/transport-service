@@ -155,6 +155,15 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
+							<formats>
+								<format>XML</format>
+							</formats>
+							<includes>
+								<include>com/gft/transport/CoverageMarker*</include>
+							</includes>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
