@@ -15,7 +15,6 @@ import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,14 +69,14 @@ public class AdvanceTrucks {
                     truckRepository.save(current);
                     truckEventPublisher.publish(new TruckStatusChangedEvent(
                             current.getTruckId(), TruckStatus.IN_TRANSIT, TruckStatus.AVAILABLE,
-                            current.getLocation(), 0, current.getCapacity(), Instant.now(), "RETURNED_TO_BASE"));
+                            current.getLocation(), 0, current.getCapacity(), currentDay, "RETURNED_TO_BASE"));
                 } else {
                     int newLoad = current.getCurrentLoad() - freedItems;
                     current = rebuildTruckWithStatus(current, TruckStatus.IN_TRANSIT, newLoad, updatedIds);
                     truckRepository.save(current);
                     truckEventPublisher.publish(new TruckStatusChangedEvent(
                             current.getTruckId(), TruckStatus.IN_TRANSIT, TruckStatus.IN_TRANSIT,
-                            current.getLocation(), newLoad, current.getCapacity(), Instant.now(), "LOAD_UPDATED"));
+                            current.getLocation(), newLoad, current.getCapacity(), currentDay, "LOAD_UPDATED"));
                 }
             }
         }

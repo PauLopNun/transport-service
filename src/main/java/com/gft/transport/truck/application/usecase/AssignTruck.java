@@ -13,7 +13,6 @@ import com.gft.transport.truck.domain.service.OptimalTruckSelector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,7 +84,7 @@ public class AssignTruck {
                 updatedTruck.getLocation(),
                 updatedTruck.getCurrentLoad(),
                 updatedTruck.getCapacity(),
-                Instant.now(),
+                command.requestedAt(),
                 reason
         ));
     }
