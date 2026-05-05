@@ -46,4 +46,38 @@ class DistanceCalculatorTest {
         Location b = new Location(4, 6);
         assertThat(calculator.calculate(a, b)).isEqualTo(calculator.calculate(b, a));
     }
+
+    @Test
+    void isOnRouteReturnsTrueForPointOnHorizontalSegment() {
+        // path: (0,0) → (3,0) → (3,4), point (2,0) is on horizontal leg
+        assertThat(calculator.isOnRoute(new Location(2, 0), new Location(0, 0), new Location(3, 4))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPointOnVerticalSegment() {
+        // path: (0,0) → (3,0) → (3,4), point (3,2) is on vertical leg
+        assertThat(calculator.isOnRoute(new Location(3, 2), new Location(0, 0), new Location(3, 4))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForOrigin() {
+        assertThat(calculator.isOnRoute(new Location(0, 0), new Location(0, 0), new Location(3, 4))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForDestination() {
+        assertThat(calculator.isOnRoute(new Location(3, 4), new Location(0, 0), new Location(3, 4))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointOffPath() {
+        // point (1,1) is off the L-shaped path (0,0)→(3,0)→(3,4)
+        assertThat(calculator.isOnRoute(new Location(1, 1), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteWorksWithNegativeCoordinates() {
+        // path: (-2,0) → (0,0) → (0,3), point (-1,0) is on horizontal leg
+        assertThat(calculator.isOnRoute(new Location(-1, 0), new Location(-2, 0), new Location(0, 3))).isTrue();
+    }
 }
