@@ -67,6 +67,7 @@ public class AssignTruck {
                 .location(truck.getLocation())
                 .status(TruckStatus.IN_TRANSIT)
                 .capacity(truck.getCapacity())
+                .speed(truck.getSpeed())
                 .currentLoad(truck.getCurrentLoad() + requiredItems)
                 .deliveryIds(updatedDeliveryIds)
                 .build();

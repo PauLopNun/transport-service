@@ -16,6 +16,8 @@ public class Truck {
     private final TruckStatus status;
     private final int capacity;
     private final int currentLoad;
+    @Builder.Default
+    private final int speed = 1;
     private final List<DeliveryId> deliveryIds;
 
     public int remainingCapacity() {

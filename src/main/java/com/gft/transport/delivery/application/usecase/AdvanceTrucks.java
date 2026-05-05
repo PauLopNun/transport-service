@@ -96,7 +96,7 @@ public class AdvanceTrucks {
     private Truck rebuildTruck(Truck truck, Location location) {
         return Truck.builder()
                 .truckId(truck.getTruckId()).name(truck.getName()).location(location)
-                .status(truck.getStatus()).capacity(truck.getCapacity())
+                .status(truck.getStatus()).capacity(truck.getCapacity()).speed(truck.getSpeed())
                 .currentLoad(truck.getCurrentLoad()).deliveryIds(truck.getDeliveryIds())
                 .build();
     }
@@ -104,7 +104,8 @@ public class AdvanceTrucks {
     private Truck rebuildTruckWithStatus(Truck truck, TruckStatus status, int load, List<DeliveryId> ids) {
         return Truck.builder()
                 .truckId(truck.getTruckId()).name(truck.getName()).location(truck.getLocation())
-                .status(status).capacity(truck.getCapacity()).currentLoad(load).deliveryIds(ids)
+                .status(status).capacity(truck.getCapacity()).speed(truck.getSpeed())
+                .currentLoad(load).deliveryIds(ids)
                 .build();
     }
 
