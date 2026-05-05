@@ -61,6 +61,15 @@ class RegisterTruckTest {
     }
 
     @Test
+    void publishesTruckRegisteredEventWithSimulationDayTimestamp() {
+        ArgumentCaptor<TruckRegisteredEvent> captor = ArgumentCaptor.forClass(TruckRegisteredEvent.class);
+        registerTruck.execute(new CreateTruckRequest("Truck 01", 0, 0, 10));
+
+        verify(eventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getTimestamp()).isEqualTo(0);
+    }
+
+    @Test
     void publishesTruckStatusChangedEventWithTruckRegisteredReason() {
         registerTruck.execute(new CreateTruckRequest("Truck 01", 0, 0, 10));
 
