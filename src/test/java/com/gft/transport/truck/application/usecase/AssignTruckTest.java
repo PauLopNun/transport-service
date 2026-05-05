@@ -83,6 +83,7 @@ class AssignTruckTest {
         assertThat(event.getOldStatus()).isEqualTo(TruckStatus.AVAILABLE);
         assertThat(event.getNewStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
         assertThat(event.getReason()).isEqualTo("DISPATCHED");
+        assertThat(event.getTimestamp()).isEqualTo(1);
     }
 
     @Test

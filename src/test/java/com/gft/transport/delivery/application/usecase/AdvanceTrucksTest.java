@@ -110,6 +110,7 @@ class AdvanceTrucksTest {
         TruckStatusChangedEvent event = captor.getValue();
         assertThat(event.getNewStatus()).isEqualTo(TruckStatus.AVAILABLE);
         assertThat(event.getReason()).isEqualTo("RETURNED_TO_BASE");
+        assertThat(event.getTimestamp()).isEqualTo(2);
     }
 
     @Test
