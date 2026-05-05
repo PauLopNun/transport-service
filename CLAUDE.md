@@ -143,7 +143,7 @@ Full spec: `src/main/resources/openapi.yaml` · Swagger UI: `http://localhost:80
 ## Open items (to coordinate before Epic 3 starts)
 
 - [ ] `materialType` naming convention — must align with team-warehouses and team-factories
-- [ ] Reporting (Pedro) expects `truck.assigned.v1` and `delivery.created.v1` — not in transport contracts-doc. Confirm whether these are needed or if his docs are outdated.
+- [ ] Reporting (Pedro) expects `truck.assigned.v1` and `delivery.created.v1` — resolved: `truck.assigned.v1` maps to `truck.status.changed.v1 reason=DISPATCHED` (same event, different name in his doc). `delivery.created.v1` is a warehouse responsibility (`shipment.requested.v1`), not transport's. Pedro needs to update his listeners accordingly.
 - [ ] `DELIVERED` TruckStatus value exists in enum but is not used in any flow. Remove or keep?
 - [ ] `reasonCode` (typed enum for BREAKDOWN phase) — deferred to post-MVP
 
