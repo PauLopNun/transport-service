@@ -50,8 +50,7 @@ public class AdvanceTrucks {
 
             current = rebuildTruck(current, next);
             truckRepository.save(current);
-            truckEventPublisher.publish(new TruckPositionUpdatedEvent(
-                    current.getTruckId(), current.getLocation(), next, Instant.now()));
+            truckEventPublisher.publish(new TruckPositionUpdatedEvent(current.getTruckId(), next));
 
             if (next.equals(target.getDestination())) {
                 Delivery completed = rebuildDelivery(target, currentDay);
