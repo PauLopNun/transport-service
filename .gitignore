@@ -32,6 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
+### Claude Code — share settings.json but not personal local overrides ###
+!.claude/
+.claude/CLAUDE.md
+.claude/settings.local.json
+
 ### graphify (AI knowledge graph tool) ###
 graphify-out/graph.json
 graphify-out/manifest.json

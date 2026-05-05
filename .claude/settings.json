@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:trello.com)",
+      "Bash(git *)",
+      "Bash(./mvnw *)",
+      "Bash(docker *)",
+      "PowerShell(git *)",
+      "PowerShell(.\\mvnw *)",
+      "PowerShell(docker *)",
+      "PowerShell(py *)"
+    ]
+  }
+}
