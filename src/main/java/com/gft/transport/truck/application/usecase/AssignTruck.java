@@ -7,6 +7,7 @@ import com.gft.transport.truck.application.port.out.TruckEventPublisher;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckStatus;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
+import com.gft.transport.truck.domain.exception.NoTruckAvailableException;
 import com.gft.transport.truck.domain.repository.TruckRepository;
 import com.gft.transport.truck.domain.service.OptimalTruckSelector;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,20 @@ public class AssignTruck {
                 .mapToInt(item -> item.quantity())
                 .sum();
 
-        Truck truck = truckSelector.select(truckRepository.findAll(), command.origin(), requiredItems);
+        List<Truck> allTrucks = truckRepository.findAll();
+        boolean additionalLoad = false;
+        Truck truck;
+
+        try {
+            truck = truckSelector.select(allTrucks, command.origin(), requiredItems);
+        } catch (NoTruckAvailableException e) {
+            truck = allTrucks.stream()
+                    .filter(t -> t.getStatus() == TruckStatus.IN_TRANSIT)
+                    .filter(t -> t.canAccept(requiredItems))
+                    .findFirst()
+                    .orElseThrow(NoTruckAvailableException::new);
+            additionalLoad = true;
+        }
 
         Delivery delivery = Delivery.builder()
                 .deliveryId(DeliveryId.generate())
@@ -59,15 +73,18 @@ public class AssignTruck {
 
         truckRepository.save(updatedTruck);
 
+        TruckStatus oldStatus = additionalLoad ? TruckStatus.IN_TRANSIT : TruckStatus.AVAILABLE;
+        String reason = additionalLoad ? "LOAD_UPDATED" : "DISPATCHED";
+
         eventPublisher.publish(new TruckStatusChangedEvent(
                 updatedTruck.getTruckId(),
-                TruckStatus.AVAILABLE,
+                oldStatus,
                 TruckStatus.IN_TRANSIT,
                 updatedTruck.getLocation(),
                 updatedTruck.getCurrentLoad(),
                 updatedTruck.getCapacity(),
                 Instant.now(),
-                "DISPATCHED"
+                reason
         ));
     }
 }

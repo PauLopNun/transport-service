@@ -40,7 +40,7 @@ class TruckControllerTest {
 
     @Test
     void postTrucks_returns201WithTruckResponse() throws Exception {
-        TruckResponse response = new TruckResponse(UUID.randomUUID().toString(), "Truck 01", 0, 0, TruckStatus.AVAILABLE);
+        TruckResponse response = new TruckResponse(UUID.randomUUID().toString(), "Truck 01", new TruckResponse.LocationDto(0, 0), TruckStatus.AVAILABLE);
         when(registerTruck.execute(any())).thenReturn(response);
 
         mockMvc.perform(post("/trucks")
@@ -48,6 +48,7 @@ class TruckControllerTest {
                         .content(objectMapper.writeValueAsString(new CreateTruckRequest("Truck 01", 0, 0, 10))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Truck 01"))
+                .andExpect(jsonPath("$.location.x").value(0))
                 .andExpect(jsonPath("$.status").value("AVAILABLE"));
     }
 
@@ -70,8 +71,8 @@ class TruckControllerTest {
     @Test
     void getTrucks_returns200WithTruckList() throws Exception {
         List<TruckResponse> trucks = List.of(
-                new TruckResponse(UUID.randomUUID().toString(), "Truck 01", 0, 0, TruckStatus.AVAILABLE),
-                new TruckResponse(UUID.randomUUID().toString(), "Truck 02", 3, 5, TruckStatus.IN_TRANSIT)
+                new TruckResponse(UUID.randomUUID().toString(), "Truck 01", new TruckResponse.LocationDto(0, 0), TruckStatus.AVAILABLE),
+                new TruckResponse(UUID.randomUUID().toString(), "Truck 02", new TruckResponse.LocationDto(3, 5), TruckStatus.IN_TRANSIT)
         );
         when(getTrucks.execute()).thenReturn(trucks);
 
@@ -79,6 +80,7 @@ class TruckControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Truck 01"))
+                .andExpect(jsonPath("$[1].location.x").value(3))
                 .andExpect(jsonPath("$[1].name").value("Truck 02"));
     }
 

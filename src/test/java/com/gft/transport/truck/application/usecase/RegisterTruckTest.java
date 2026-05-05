@@ -48,8 +48,8 @@ class RegisterTruckTest {
         TruckResponse response = registerTruck.execute(new CreateTruckRequest("Truck 01", 3, 5, 10));
 
         assertThat(response.name()).isEqualTo("Truck 01");
-        assertThat(response.locationX()).isEqualTo(3);
-        assertThat(response.locationY()).isEqualTo(5);
+        assertThat(response.location().x()).isEqualTo(3);
+        assertThat(response.location().y()).isEqualTo(5);
         assertThat(response.status()).isEqualTo(TruckStatus.AVAILABLE);
     }
 

@@ -107,6 +107,46 @@ class AssignTruckTest {
         assertThat(updated.getStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
     }
 
+    @Test
+    void assignsToInTransitTruckWhenNoAvailableTruck() {
+        Truck inTransit = Truck.builder()
+                .truckId(TruckId.generate())
+                .name("Truck 01")
+                .location(new Location(0, 0))
+                .status(TruckStatus.IN_TRANSIT)
+                .capacity(10)
+                .currentLoad(3)
+                .deliveryIds(List.of(com.gft.transport.delivery.domain.DeliveryId.generate()))
+                .build();
+
+        when(truckRepository.findAll()).thenReturn(List.of(inTransit));
+
+        assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 2));
+
+        ArgumentCaptor<TruckStatusChangedEvent> captor = ArgumentCaptor.forClass(TruckStatusChangedEvent.class);
+        verify(eventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getReason()).isEqualTo("LOAD_UPDATED");
+        assertThat(captor.getValue().getOldStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
+    }
+
+    @Test
+    void throwsWhenInTransitTruckAlsoHasNoCapacity() {
+        Truck full = Truck.builder()
+                .truckId(TruckId.generate())
+                .name("Truck 01")
+                .location(new Location(0, 0))
+                .status(TruckStatus.IN_TRANSIT)
+                .capacity(5)
+                .currentLoad(5)
+                .deliveryIds(List.of(com.gft.transport.delivery.domain.DeliveryId.generate()))
+                .build();
+
+        when(truckRepository.findAll()).thenReturn(List.of(full));
+
+        assertThatThrownBy(() -> assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 1)))
+                .isInstanceOf(com.gft.transport.truck.domain.exception.NoTruckAvailableException.class);
+    }
+
     private Truck availableTruck(Location location) {
         return Truck.builder()
                 .truckId(TruckId.generate())
