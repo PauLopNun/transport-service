@@ -28,7 +28,14 @@
         </createTable>
     </changeSet>
 
-    <changeSet id="2" author="paulopeznunez">
+    <changeSet id="2" author="ivangfuertes">
+        <addColumn tableName="deliveries">
+            <column name="origin_x" type="INT"/>
+            <column name="origin_y" type="INT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="3" author="paulopeznunez">
         <createTable tableName="delivery_items">
             <column name="delivery_id" type="UUID">
                 <constraints nullable="false"/>

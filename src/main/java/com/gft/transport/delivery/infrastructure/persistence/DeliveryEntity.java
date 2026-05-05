@@ -18,6 +18,8 @@ public class DeliveryEntity {
     private UUID id;
     private UUID shipmentId;
     private UUID truckId;
+    private Integer originX;
+    private Integer originY;
     private int destX;
     private int destY;
     private int assignedAt;

@@ -41,10 +41,13 @@ public class DeliveryRepositoryAdapter implements DeliveryRepository {
                 .map(i -> new DeliveryItemEmbeddable(i.materialType(), i.quantity()))
                 .toList();
 
+        Location origin = delivery.getOrigin();
         return DeliveryEntity.builder()
                 .id(delivery.getDeliveryId().value())
                 .shipmentId(delivery.getShipmentId())
                 .truckId(delivery.getTruckId().value())
+                .originX(origin != null ? origin.x() : null)
+                .originY(origin != null ? origin.y() : null)
                 .destX(delivery.getDestination().x())
                 .destY(delivery.getDestination().y())
                 .assignedAt(delivery.getAssignedAt())
@@ -58,10 +61,14 @@ public class DeliveryRepositoryAdapter implements DeliveryRepository {
                 .map(i -> new DeliveryItem(i.getMaterialType(), i.getQuantity()))
                 .toList();
 
+        Location origin = entity.getOriginX() != null
+                ? new Location(entity.getOriginX(), entity.getOriginY())
+                : null;
         return Delivery.builder()
                 .deliveryId(new DeliveryId(entity.getId()))
                 .shipmentId(entity.getShipmentId())
                 .truckId(new TruckId(entity.getTruckId()))
+                .origin(origin)
                 .destination(new Location(entity.getDestX(), entity.getDestY()))
                 .items(items)
                 .assignedAt(entity.getAssignedAt())
