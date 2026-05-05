@@ -6,16 +6,16 @@ import com.gft.transport.truck.domain.TruckStatus;
 public record TruckResponse(
         String truckId,
         String name,
-        int locationX,
-        int locationY,
+        LocationDto location,
         TruckStatus status
 ) {
+    public record LocationDto(int x, int y) {}
+
     public static TruckResponse from(Truck truck) {
         return new TruckResponse(
                 truck.getTruckId().value().toString(),
                 truck.getName(),
-                truck.getLocation().x(),
-                truck.getLocation().y(),
+                new LocationDto(truck.getLocation().x(), truck.getLocation().y()),
                 truck.getStatus()
         );
     }
