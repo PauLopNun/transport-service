@@ -1,4 +1,4 @@
-﻿package com.gft.transport.truck.infrastructure.rest;
+package com.gft.transport.truck.infrastructure.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gft.transport.truck.application.dto.CreateTruckRequest;
