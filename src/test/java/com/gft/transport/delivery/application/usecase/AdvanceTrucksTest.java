@@ -162,6 +162,20 @@ class AdvanceTrucksTest {
     }
 
     @Test
+    void publishesPositionUpdateWithCurrentLocation() {
+        Truck truck = inTransitTruck(new Location(0, 0));
+        Delivery delivery = deliveryFor(truck, new Location(3, 0));
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(1, 2);
+
+        ArgumentCaptor<TruckPositionUpdatedEvent> captor = ArgumentCaptor.forClass(TruckPositionUpdatedEvent.class);
+        verify(truckEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getLocation()).isEqualTo(new Location(1, 0));
+    }
+
+    @Test
     void movesTruckOnYAxisAfterReachingDestinationX() {
         Truck truck = inTransitTruck(new Location(0, 0));
         Delivery delivery = deliveryFor(truck, new Location(0, 2));
