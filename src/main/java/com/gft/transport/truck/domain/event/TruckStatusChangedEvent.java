@@ -5,8 +5,6 @@ import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
 import lombok.Value;
 
-import java.time.Instant;
-
 @Value
 public class TruckStatusChangedEvent {
     TruckId truckId;
@@ -15,6 +13,6 @@ public class TruckStatusChangedEvent {
     Location position;
     int currentLoad;
     int capacity;
-    Instant timestamp;
+    int timestamp;
     String reason;
 }

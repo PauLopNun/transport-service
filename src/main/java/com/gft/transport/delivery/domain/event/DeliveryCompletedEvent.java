@@ -6,7 +6,6 @@ import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.TruckId;
 import lombok.Value;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,5 +16,4 @@ public class DeliveryCompletedEvent {
     List<DeliveryItem> items;
     Location location;
     int completedAt;
-    Instant timestamp;
 }

@@ -13,7 +13,6 @@ import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -41,7 +40,7 @@ public class RegisterTruck {
                 truck.getName(),
                 truck.getLocation(),
                 truck.getCapacity(),
-                Instant.now()
+                0
         ));
 
         eventPublisher.publish(new TruckStatusChangedEvent(
@@ -51,7 +50,7 @@ public class RegisterTruck {
                 truck.getLocation(),
                 0,
                 truck.getCapacity(),
-                Instant.now(),
+                0,
                 "TRUCK_REGISTERED"
         ));
 

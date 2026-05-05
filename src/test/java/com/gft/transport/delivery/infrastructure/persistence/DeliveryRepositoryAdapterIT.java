@@ -95,11 +95,31 @@ class DeliveryRepositoryAdapterIT {
         return buildDeliveryForTruck(TruckId.generate());
     }
 
+    @Test
+    void savesAndRestoresOrigin() {
+        Delivery delivery = Delivery.builder()
+                .deliveryId(DeliveryId.generate())
+                .shipmentId(java.util.UUID.randomUUID())
+                .truckId(TruckId.generate())
+                .origin(new Location(2, 3))
+                .destination(new Location(5, 5))
+                .items(List.of(new DeliveryItem("wood", 1)))
+                .assignedAt(1)
+                .completedAt(null)
+                .build();
+
+        adapter.save(delivery);
+
+        Delivery found = adapter.findById(delivery.getDeliveryId()).orElseThrow();
+        assertThat(found.getOrigin()).isEqualTo(new Location(2, 3));
+    }
+
     private Delivery buildDeliveryForTruck(TruckId truckId) {
         return Delivery.builder()
                 .deliveryId(DeliveryId.generate())
                 .shipmentId(java.util.UUID.randomUUID())
                 .truckId(truckId)
+                .origin(new Location(0, 0))
                 .destination(new Location(5, 5))
                 .items(List.of(new DeliveryItem("wood", 6), new DeliveryItem("nails", 12)))
                 .assignedAt(1)

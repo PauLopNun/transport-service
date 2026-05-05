@@ -62,4 +62,25 @@ class TruckTest {
         Truck truck = buildTruck(50, 50);
         assertThat(truck.canAccept(0)).isTrue();
     }
+
+    @Test
+    void speedDefaultsToOne() {
+        Truck truck = buildTruck(10, 0);
+        assertThat(truck.getSpeed()).isEqualTo(1);
+    }
+
+    @Test
+    void speedCanBeOverridden() {
+        Truck truck = Truck.builder()
+                .truckId(new TruckId(UUID.randomUUID()))
+                .name("Fast")
+                .location(new Location(0, 0))
+                .status(TruckStatus.AVAILABLE)
+                .capacity(10)
+                .currentLoad(0)
+                .speed(2)
+                .deliveryIds(List.of())
+                .build();
+        assertThat(truck.getSpeed()).isEqualTo(2);
+    }
 }

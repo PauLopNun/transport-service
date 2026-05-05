@@ -16,6 +16,7 @@ class DeliveryTest {
                 .deliveryId(new DeliveryId(UUID.randomUUID()))
                 .shipmentId(UUID.randomUUID())
                 .truckId(new TruckId(UUID.randomUUID()))
+                .origin(new Location(0, 0))
                 .destination(new Location(5, 10))
                 .items(List.of(new DeliveryItem("PALLETS", 3)))
                 .assignedAt(1)
@@ -31,5 +32,34 @@ class DeliveryTest {
     @Test
     void isCompletedReturnsTrueWhenCompletedAtIsSet() {
         assertThat(buildDelivery(5).isCompleted()).isTrue();
+    }
+
+    @Test
+    void isArrivedReturnsTrueWhenTruckIsAtDestination() {
+        Delivery delivery = buildDelivery(null);
+        assertThat(delivery.isArrived(new Location(5, 10))).isTrue();
+    }
+
+    @Test
+    void isArrivedReturnsFalseWhenTruckIsNotAtDestination() {
+        Delivery delivery = buildDelivery(null);
+        assertThat(delivery.isArrived(new Location(3, 10))).isFalse();
+    }
+
+    @Test
+    void completeReturnsDeliveryWithCompletedAt() {
+        Delivery delivery = buildDelivery(null);
+        Delivery completed = delivery.complete(7);
+        assertThat(completed.getCompletedAt()).isEqualTo(7);
+        assertThat(completed.isCompleted()).isTrue();
+    }
+
+    @Test
+    void completePreservesOriginAndAllFields() {
+        Delivery delivery = buildDelivery(null);
+        Delivery completed = delivery.complete(3);
+        assertThat(completed.getOrigin()).isEqualTo(delivery.getOrigin());
+        assertThat(completed.getDestination()).isEqualTo(delivery.getDestination());
+        assertThat(completed.getShipmentId()).isEqualTo(delivery.getShipmentId());
     }
 }

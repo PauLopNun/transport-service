@@ -110,6 +110,7 @@ class AdvanceTrucksTest {
         TruckStatusChangedEvent event = captor.getValue();
         assertThat(event.getNewStatus()).isEqualTo(TruckStatus.AVAILABLE);
         assertThat(event.getReason()).isEqualTo("RETURNED_TO_BASE");
+        assertThat(event.getTimestamp()).isEqualTo(2);
     }
 
     @Test
@@ -132,6 +133,7 @@ class AdvanceTrucksTest {
                 .deliveryId(firstId)
                 .shipmentId(UUID.randomUUID())
                 .truckId(truckId)
+                .origin(new Location(0, 0))
                 .destination(new Location(1, 0))
                 .items(List.of(new DeliveryItem("wood", 2)))
                 .assignedAt(1)
@@ -142,6 +144,7 @@ class AdvanceTrucksTest {
                 .deliveryId(secondId)
                 .shipmentId(UUID.randomUUID())
                 .truckId(truckId)
+                .origin(new Location(0, 0))
                 .destination(new Location(3, 0))
                 .items(List.of(new DeliveryItem("nails", 2)))
                 .assignedAt(1)
@@ -159,6 +162,20 @@ class AdvanceTrucksTest {
         TruckStatusChangedEvent event = captor.getValue();
         assertThat(event.getNewStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
         assertThat(event.getReason()).isEqualTo("LOAD_UPDATED");
+    }
+
+    @Test
+    void publishesPositionUpdateWithCurrentLocation() {
+        Truck truck = inTransitTruck(new Location(0, 0));
+        Delivery delivery = deliveryFor(truck, new Location(3, 0));
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(1, 2);
+
+        ArgumentCaptor<TruckPositionUpdatedEvent> captor = ArgumentCaptor.forClass(TruckPositionUpdatedEvent.class);
+        verify(truckEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getLocation()).isEqualTo(new Location(1, 0));
     }
 
     @Test
@@ -205,6 +222,7 @@ class AdvanceTrucksTest {
                 .deliveryId(truck.getDeliveryIds().get(0))
                 .shipmentId(UUID.randomUUID())
                 .truckId(truck.getTruckId())
+                .origin(new Location(0, 0))
                 .destination(destination)
                 .items(List.of(new DeliveryItem("wood", 3)))
                 .assignedAt(1)

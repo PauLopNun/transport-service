@@ -15,7 +15,6 @@ import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,16 +49,15 @@ public class AdvanceTrucks {
 
             current = rebuildTruck(current, next);
             truckRepository.save(current);
-            truckEventPublisher.publish(new TruckPositionUpdatedEvent(
-                    current.getTruckId(), current.getLocation(), next, Instant.now()));
+            truckEventPublisher.publish(new TruckPositionUpdatedEvent(current.getTruckId(), next));
 
-            if (next.equals(target.getDestination())) {
-                Delivery completed = rebuildDelivery(target, currentDay);
+            if (target.isArrived(next)) {
+                Delivery completed = target.complete(currentDay);
                 deliveryRepository.save(completed);
                 deliveryEventPublisher.publish(new DeliveryCompletedEvent(
                         completed.getShipmentId(), completed.getTruckId(),
                         completed.getItems(), completed.getDestination(),
-                        currentDay, Instant.now()));
+                        currentDay));
 
                 remaining.remove(0);
                 int freedItems = target.getItems().stream().mapToInt(i -> i.quantity()).sum();
@@ -71,14 +69,14 @@ public class AdvanceTrucks {
                     truckRepository.save(current);
                     truckEventPublisher.publish(new TruckStatusChangedEvent(
                             current.getTruckId(), TruckStatus.IN_TRANSIT, TruckStatus.AVAILABLE,
-                            current.getLocation(), 0, current.getCapacity(), Instant.now(), "RETURNED_TO_BASE"));
+                            current.getLocation(), 0, current.getCapacity(), currentDay, "RETURNED_TO_BASE"));
                 } else {
                     int newLoad = current.getCurrentLoad() - freedItems;
                     current = rebuildTruckWithStatus(current, TruckStatus.IN_TRANSIT, newLoad, updatedIds);
                     truckRepository.save(current);
                     truckEventPublisher.publish(new TruckStatusChangedEvent(
                             current.getTruckId(), TruckStatus.IN_TRANSIT, TruckStatus.IN_TRANSIT,
-                            current.getLocation(), newLoad, current.getCapacity(), Instant.now(), "LOAD_UPDATED"));
+                            current.getLocation(), newLoad, current.getCapacity(), currentDay, "LOAD_UPDATED"));
                 }
             }
         }
@@ -97,7 +95,7 @@ public class AdvanceTrucks {
     private Truck rebuildTruck(Truck truck, Location location) {
         return Truck.builder()
                 .truckId(truck.getTruckId()).name(truck.getName()).location(location)
-                .status(truck.getStatus()).capacity(truck.getCapacity())
+                .status(truck.getStatus()).capacity(truck.getCapacity()).speed(truck.getSpeed())
                 .currentLoad(truck.getCurrentLoad()).deliveryIds(truck.getDeliveryIds())
                 .build();
     }
@@ -105,16 +103,9 @@ public class AdvanceTrucks {
     private Truck rebuildTruckWithStatus(Truck truck, TruckStatus status, int load, List<DeliveryId> ids) {
         return Truck.builder()
                 .truckId(truck.getTruckId()).name(truck.getName()).location(truck.getLocation())
-                .status(status).capacity(truck.getCapacity()).currentLoad(load).deliveryIds(ids)
+                .status(status).capacity(truck.getCapacity()).speed(truck.getSpeed())
+                .currentLoad(load).deliveryIds(ids)
                 .build();
     }
 
-    private Delivery rebuildDelivery(Delivery delivery, int completedAt) {
-        return Delivery.builder()
-                .deliveryId(delivery.getDeliveryId()).shipmentId(delivery.getShipmentId())
-                .truckId(delivery.getTruckId()).destination(delivery.getDestination())
-                .items(delivery.getItems()).assignedAt(delivery.getAssignedAt())
-                .completedAt(completedAt)
-                .build();
-    }
 }
