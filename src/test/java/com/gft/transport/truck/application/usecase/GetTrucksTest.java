@@ -56,8 +56,8 @@ class GetTrucksTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).name()).isEqualTo("Truck 01");
-        assertThat(result.get(0).locationX()).isEqualTo(3);
-        assertThat(result.get(0).locationY()).isEqualTo(5);
+        assertThat(result.get(0).location().x()).isEqualTo(3);
+        assertThat(result.get(0).location().y()).isEqualTo(5);
         assertThat(result.get(0).status()).isEqualTo(TruckStatus.AVAILABLE);
     }
 
