@@ -57,7 +57,7 @@ public class AdvanceTrucks {
                 deliveryEventPublisher.publish(new DeliveryCompletedEvent(
                         completed.getShipmentId(), completed.getTruckId(),
                         completed.getItems(), completed.getDestination(),
-                        currentDay, Instant.now()));
+                        currentDay));
 
                 remaining.remove(0);
                 int freedItems = target.getItems().stream().mapToInt(i -> i.quantity()).sum();
