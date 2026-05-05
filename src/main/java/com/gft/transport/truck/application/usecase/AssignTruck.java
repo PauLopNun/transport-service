@@ -50,6 +50,7 @@ public class AssignTruck {
                 .deliveryId(DeliveryId.generate())
                 .shipmentId(command.shipmentId())
                 .truckId(truck.getTruckId())
+                .origin(command.origin())
                 .destination(command.destination())
                 .items(command.items())
                 .assignedAt(command.requestedAt())

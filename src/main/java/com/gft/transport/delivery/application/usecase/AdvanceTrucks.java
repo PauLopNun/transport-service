@@ -52,8 +52,8 @@ public class AdvanceTrucks {
             truckRepository.save(current);
             truckEventPublisher.publish(new TruckPositionUpdatedEvent(current.getTruckId(), next));
 
-            if (next.equals(target.getDestination())) {
-                Delivery completed = rebuildDelivery(target, currentDay);
+            if (target.isArrived(next)) {
+                Delivery completed = target.complete(currentDay);
                 deliveryRepository.save(completed);
                 deliveryEventPublisher.publish(new DeliveryCompletedEvent(
                         completed.getShipmentId(), completed.getTruckId(),
@@ -109,12 +109,4 @@ public class AdvanceTrucks {
                 .build();
     }
 
-    private Delivery rebuildDelivery(Delivery delivery, int completedAt) {
-        return Delivery.builder()
-                .deliveryId(delivery.getDeliveryId()).shipmentId(delivery.getShipmentId())
-                .truckId(delivery.getTruckId()).destination(delivery.getDestination())
-                .items(delivery.getItems()).assignedAt(delivery.getAssignedAt())
-                .completedAt(completedAt)
-                .build();
-    }
 }
