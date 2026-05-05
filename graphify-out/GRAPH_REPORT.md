@@ -1,4 +1,4 @@
-# Graph Report - .  (2026-05-05)
+﻿# Graph Report - .  (2026-05-05)
 
 ## Corpus Check
 - Corpus is ~7,789 words - fits in a single context window. You may not need a graph.
@@ -46,10 +46,10 @@
 3. `DeliveryRepositoryAdapterIT` - 9 edges
 4. `TruckTest` - 9 edges
 5. `OptimalTruckSelectorTest` - 9 edges
-6. `Epic 1: Trucks â€” Domain Model` - 9 edges
-7. `Epic 2: Trucks â€” Use Cases` - 9 edges
+6. `Epic 1: Trucks — Domain Model` - 9 edges
+7. `Epic 2: Trucks — Use Cases` - 9 edges
 8. `DistanceCalculatorTest` - 8 edges
-9. `Epic 3: Trucks â€” Messaging & Infrastructure` - 8 edges
+9. `Epic 3: Trucks — Messaging & Infrastructure` - 8 edges
 10. `AdvanceTrucks` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -77,7 +77,7 @@ Nodes (6): from(), TruckControllerTest, CoverageMarker, CoverageMarkerTest, GetT
 
 ### Community 1 - "Persistence & Domain Contracts"
 Cohesion: 0.16
-Nodes (19): deliveries DB Table, delivery_items DB Table, trucks DB Table, DistanceCalculator Domain Service, OptimalTruckSelector Domain Service, Epic 1: Trucks â€” Domain Model, Epic 2: Trucks â€” Use Cases, Epic 3: Trucks â€” Messaging & Infrastructure (+11 more)
+Nodes (19): deliveries DB Table, delivery_items DB Table, trucks DB Table, DistanceCalculator Domain Service, OptimalTruckSelector Domain Service, Epic 1: Trucks — Domain Model, Epic 2: Trucks — Use Cases, Epic 3: Trucks — Messaging & Infrastructure (+11 more)
 
 ### Community 2 - "Architecture Decisions"
 Cohesion: 0.23
