@@ -26,6 +26,8 @@ public class TruckEntity {
     private TruckStatus status;
 
     private int capacity;
+
+    @Column(name = "current_load")
     private int currentLoad;
 
     @ElementCollection
