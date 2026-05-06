@@ -58,7 +58,7 @@ class AssignTruckTest {
 
         assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 3));
 
-        verify(truckRepository, times(2)).save(any(Truck.class));
+        verify(truckRepository).save(any(Truck.class));
     }
 
     @Test
@@ -100,8 +100,8 @@ class AssignTruckTest {
         assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 3));
 
         ArgumentCaptor<Truck> captor = ArgumentCaptor.forClass(Truck.class);
-        verify(truckRepository, times(2)).save(captor.capture());
-        Truck updated = captor.getAllValues().get(1);
+        verify(truckRepository).save(captor.capture());
+        Truck updated = captor.getValue();
 
         assertThat(updated.getCurrentLoad()).isEqualTo(3);
         assertThat(updated.getStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
