@@ -51,8 +51,19 @@ Status legend: `To Do` · `Doing` · `Revision` · `Done`
 - **[TRK-40] FEATURE | Consume time.advanced.v1 — trucks** `To Do`
   - [TRK-179] STORY | (interno) TimeAdvancedListener `To Do`
 - **[TRK-41] FEATURE | Publish truck.position.updated.v1** `To Do`
-  - [TRK-195] STORY | Implement RabbitMQ publisher for truck.position.updated.v1 `To Do`
+  - [TRK-241] STORY | Create TruckPositionUpdatedMessage DTO `To Do`
+  - [TRK-242] STORY | Implement RabbitMQTruckEventPublisher — publishPositionUpdated `To Do`
+  - [TRK-243] STORY | Connect publisher to AdvanceTrucks — Publish position on each tick for IN_TRANSIT trucks `To Do`
+  - [TRK-244] STORY | Integration test with Testcontainers RabbitMQ — truck.position.updated.v1 `To Do`
 - **[TRK-42] FEATURE | Publish truck.status.changed.v1** `To Do`
-  - [TRK-196] STORY | Implement RabbitMQ publisher for truck.status.changed.v1 `To Do`
+  - [TRK-245] STORY | Create TruckStatusChangedMessage DTO `To Do`
+  - [TRK-246] STORY | Implement RabbitMQTruckEventPublisher — truck status changed event `To Do`
+  - [TRK-247] STORY | Connect publisher to RegisterTruck — reason TRUCK_REGISTERED `To Do`
+  - [TRK-248] STORY | Connect publisher to AssignTruck — reason DISPATCHED and LOAD_UPDATED `To Do`
+  - [TRK-249] STORY | Connect publisher to AdvanceTrucks — reason RETURNED_TO_BASE `To Do`
+  - [TRK-250] STORY | Integration test with Testcontainers RabbitMQ — truck.status.changed.v1 `To Do`
 - **[TRK-43] FEATURE | Publish delivery.completed.v1** `To Do`
-  - [TRK-197] STORY | Implement RabbitMQ publisher for delivery.completed.v1 `To Do`
+  - [TRK-251] STORY | Create DeliveryCompletedMessage DTO `To Do`
+  - [TRK-252] STORY | Implement RabbitMQDeliveryEventPublisher — delivery completed event `To Do`
+  - [TRK-253] STORY | Connect publisher to AdvanceTrucks — Publish when truck arrives at destination `To Do`
+  - [TRK-254] STORY | Integration test with Testcontainers RabbitMQ — delivery.completed.v1 `To Do`
