@@ -1,4 +1,5 @@
 {
+  "enabledMcpjsonServers": ["github", "postgres"],
   "permissions": {
     "allow": [
       "WebFetch(domain:github.com)",
