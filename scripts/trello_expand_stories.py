@@ -12,8 +12,8 @@ Usage:
 import argparse, requests, time, sys, io, re
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
-KEY   = "a5df122d6183ebfcaa99c219ae595533"
-TOKEN = "ATTAe6296912f9210452b6bbe0c2a7a6a42b7032fb6a0b285886e499d3358740654909B2BE80"
+KEY   = os.environ["TRELLO_KEY"]
+TOKEN = os.environ["TRELLO_TOKEN"]
 BASE  = "https://api.trello.com/1"
 BOARD = "WtpHmvMt"
 REPO  = "PauLopNun/transport-service"
