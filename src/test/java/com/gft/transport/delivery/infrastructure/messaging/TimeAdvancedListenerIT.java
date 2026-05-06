@@ -36,6 +36,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -78,6 +79,9 @@ class TimeAdvancedListenerIT {
 
     @Autowired
     private DeliveryJpaRepository deliveryJpaRepository;
+
+    @Autowired
+    private TimeAdvancedListener timeAdvancedListener;
 
     @MockitoBean
     private TruckEventPublisher truckEventPublisher;
@@ -133,6 +137,37 @@ class TimeAdvancedListenerIT {
             assertThat(truck.getY()).isEqualTo(0);
             assertThat(truck.getStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
         });
+    }
+
+    @Test
+    void doesNotAdvanceTruckWhenCurrentDayDoesNotIncrease() {
+        TruckId truckId = TruckId.generate();
+        DeliveryId deliveryId = DeliveryId.generate();
+
+        seedInTransitTruck(truckId, deliveryId);
+        seedPendingDelivery(truckId, deliveryId);
+
+        publishCurrentDay(1);
+        publishCurrentDay(1);
+
+        await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            var truck = truckJpaRepository.findById(truckId.value()).orElseThrow();
+            assertThat(truck.getX()).isEqualTo(0);
+            assertThat(truck.getY()).isEqualTo(0);
+            assertThat(truck.getStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
+        });
+    }
+
+    @Test
+    void rejectsInvalidTimeAdvancedMessage() {
+        Message message = MessageBuilder
+                .withBody("not-json".getBytes(StandardCharsets.UTF_8))
+                .setContentType("application/json")
+                .build();
+
+        assertThatThrownBy(() -> timeAdvancedListener.onMessage(message))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid time.advanced.v1 message");
     }
 
     private void seedInTransitTruck(TruckId truckId, DeliveryId deliveryId) {
