@@ -54,4 +54,47 @@
                                  constraintName="fk_delivery_items_delivery"/>
     </changeSet>
 
+
+    <changeSet id="4" author="paugreus">
+        <createTable tableName="trucks">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="x" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="y" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="capacity" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_load" type="INT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="5" author="paugreus">
+        <createTable tableName="truck_deliveries">
+            <column name="truck_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="delivery_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="truck_deliveries"
+                                 baseColumnNames="truck_id"
+                                 referencedTableName="trucks"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_truck_deliveries_truck"/>
+    </changeSet>
+
 </databaseChangeLog>
