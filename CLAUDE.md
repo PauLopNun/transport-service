@@ -156,4 +156,6 @@ Full spec: `src/main/resources/openapi.yaml` · Swagger UI: `http://localhost:80
 - 100% coverage on domain + application layers
 - Pipeline fails if coverage drops below 100% on CoverageMarker class
 - No future-dated commits — spread across working hours 08:00-17:30
-- Branch naming: `type/short-description` (feature/, fix/, docs/, chore/, test/, refactor/)
+- Branch naming: `type/TRK-{id}-short-description` — e.g. `feature/TRK-56-register-truck-rest`, `fix/TRK-60-confirm-delivery`
+- PR title must include the TRK id: `[TRK-56] Register a new truck via REST`
+- Commit messages should reference the card: `feat(TRK-56): implement POST /trucks`
