@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <changeSet id="1" author="paulopeznunez">
+        <createTable tableName="deliveries">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="shipment_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="truck_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dest_x" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dest_y" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assigned_at" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_at" type="INT"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2" author="paulopeznunez">
+        <createTable tableName="delivery_items">
+            <column name="delivery_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="material_type" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity" type="INT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="delivery_items"
+                                 baseColumnNames="delivery_id"
+                                 referencedTableName="deliveries"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_delivery_items_delivery"/>
+    </changeSet>
+
+</databaseChangeLog>
