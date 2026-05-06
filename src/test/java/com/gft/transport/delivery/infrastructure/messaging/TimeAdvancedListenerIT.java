@@ -12,6 +12,7 @@ import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
 import com.gft.transport.truck.domain.repository.TruckRepository;
+import com.gft.transport.truck.domain.service.OptimalTruckSelector;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
 import com.gft.transport.truck.infrastructure.persistence.TruckJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -39,6 +41,7 @@ import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @Testcontainers
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TimeAdvancedListenerIT {
 
     @Container
@@ -81,6 +84,9 @@ class TimeAdvancedListenerIT {
 
     @MockitoBean
     private DeliveryEventPublisher deliveryEventPublisher;
+
+    @MockitoBean
+    private OptimalTruckSelector optimalTruckSelector;
 
     @BeforeEach
     void setUp() {

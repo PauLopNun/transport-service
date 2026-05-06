@@ -16,13 +16,29 @@ public class DeliveryEntity {
 
     @Id
     private UUID id;
+
+    @Column(name = "shipment_id")
     private UUID shipmentId;
+
+    @Column(name = "truck_id")
     private UUID truckId;
+
+    @Column(name = "origin_x")
     private Integer originX;
+
+    @Column(name = "origin_y")
     private Integer originY;
+
+    @Column(name = "dest_x")
     private int destX;
+
+    @Column(name = "dest_y")
     private int destY;
+
+    @Column(name = "assigned_at")
     private int assignedAt;
+
+    @Column(name = "completed_at")
     private Integer completedAt;
 
     @ElementCollection

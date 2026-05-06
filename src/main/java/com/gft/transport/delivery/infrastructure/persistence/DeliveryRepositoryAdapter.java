@@ -8,6 +8,7 @@ import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.TruckId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,16 +21,19 @@ public class DeliveryRepositoryAdapter implements DeliveryRepository {
     private final DeliveryJpaRepository jpaRepository;
 
     @Override
+    @Transactional
     public void save(Delivery delivery) {
         jpaRepository.save(toEntity(delivery));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Delivery> findById(DeliveryId deliveryId) {
         return jpaRepository.findById(deliveryId.value()).map(this::toDomain);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Delivery> findByTruckId(TruckId truckId) {
         return jpaRepository.findByTruckId(truckId.value()).stream()
                 .map(this::toDomain)

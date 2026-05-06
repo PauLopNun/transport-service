@@ -1,6 +1,7 @@
 package com.gft.transport.delivery.infrastructure.persistence;
 
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeliveryItemEmbeddable {
+    @Column(name = "material_type")
     private String materialType;
+
     private int quantity;
 }

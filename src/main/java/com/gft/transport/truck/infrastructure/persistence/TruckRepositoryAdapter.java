@@ -8,6 +8,7 @@ import com.gft.transport.truck.domain.TruckStatus;
 import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,17 +20,20 @@ public class TruckRepositoryAdapter implements TruckRepository {
     private final TruckJpaRepository jpaRepository;
 
     @Override
+    @Transactional
     public void save(Truck truck) {
         jpaRepository.save(toEntity(truck));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Truck> findById(TruckId truckId) {
         return jpaRepository.findById(truckId.value())
                 .map(this::toDomain);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Truck> findAll() {
         return jpaRepository.findAll().stream()
                 .map(this::toDomain)
@@ -37,6 +41,7 @@ public class TruckRepositoryAdapter implements TruckRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Truck> findAvailable() {
         return jpaRepository.findByStatus(TruckStatus.AVAILABLE).stream()
                 .map(this::toDomain)
