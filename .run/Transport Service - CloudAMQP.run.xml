@@ -6,7 +6,9 @@
         <MavenRunnerSettings>
           <option name="delegateBuildToMaven" value="false" />
           <option name="environmentProperties">
-            <map />
+            <map>
+              <entry key="RABBITMQ_PASSWORD" value="" />
+            </map>
           </option>
           <option name="jreName" value="#USE_PROJECT_JDK" />
           <option name="mavenProperties">
@@ -21,9 +23,7 @@
         <MavenRunnerParameters>
           <option name="cmdOptions" value="-Dspring-boot.run.profiles=cloudamqp" />
           <option name="profiles">
-            <set>
-              <option value="reset-compose-before-run" />
-            </set>
+            <set />
           </option>
           <option name="goals">
             <list>
