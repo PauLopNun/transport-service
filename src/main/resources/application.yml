@@ -3,9 +3,9 @@ spring:
     name: transport-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/transport
-    username: transport
-    password: transport
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:55432/transport}
+    username: ${SPRING_DATASOURCE_USERNAME:transport}
+    password: ${SPRING_DATASOURCE_PASSWORD:transport}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -19,6 +19,47 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
+
+  docker:
+    compose:
+      enabled: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:seal.lmq.cloudamqp.com}
+    port: ${RABBITMQ_PORT:5671}
+    username: ${RABBITMQ_USERNAME:ibvztclz}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:ibvztclz}
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: cloudamqp
+
+  datasource:
+    url: jdbc:postgresql://localhost:55432/transport?user=transport&password=transport
+    username: transport
+    password: transport
+
+  liquibase:
+    url: jdbc:postgresql://localhost:55432/transport?user=transport&password=transport
+    user: transport
+    password: transport
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+  docker:
+    compose:
+      enabled: false
+      profiles:
+        active: local-rabbitmq
 
   rabbitmq:
     host: localhost
