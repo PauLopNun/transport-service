@@ -37,6 +37,9 @@ build/
 .claude/CLAUDE.md
 .claude/settings.local.json
 
+### MCP config — contains API tokens, never commit ###
+.mcp.json
+
 ### graphify (AI knowledge graph tool) ###
 graphify-out/graph.json
 graphify-out/manifest.json
