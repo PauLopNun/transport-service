@@ -211,4 +211,59 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>reset-compose-before-run</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>3.5.0</version>
+						<executions>
+							<execution>
+								<id>docker-compose-down-before-run</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+									<executable>docker</executable>
+									<arguments>
+										<argument>compose</argument>
+										<argument>down</argument>
+										<argument>-v</argument>
+									</arguments>
+									<successCodes>
+										<successCode>0</successCode>
+									</successCodes>
+								</configuration>
+							</execution>
+							<execution>
+								<id>docker-compose-up-postgres-before-run</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+									<executable>docker</executable>
+									<arguments>
+										<argument>compose</argument>
+										<argument>up</argument>
+										<argument>-d</argument>
+										<argument>--wait</argument>
+										<argument>postgres</argument>
+									</arguments>
+									<successCodes>
+										<successCode>0</successCode>
+									</successCodes>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>

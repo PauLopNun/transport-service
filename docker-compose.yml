@@ -1,15 +1,47 @@
 services:
+  app:
+    build: .
+    profiles:
+      - app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/transport
+      SPRING_DATASOURCE_USERNAME: transport
+      SPRING_DATASOURCE_PASSWORD: transport
+      SPRING_DOCKER_COMPOSE_ENABLED: false
+      RABBITMQ_HOST: ${RABBITMQ_HOST:-seal.lmq.cloudamqp.com}
+      RABBITMQ_PORT: ${RABBITMQ_PORT:-5671}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-ibvztclz}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-}
+      RABBITMQ_VIRTUAL_HOST: ${RABBITMQ_VIRTUAL_HOST:-ibvztclz}
+      RABBITMQ_SSL_ENABLED: ${RABBITMQ_SSL_ENABLED:-true}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    pull_policy: if_not_present
     environment:
       POSTGRES_DB: transport
       POSTGRES_USER: transport
       POSTGRES_PASSWORD: transport
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"
+      - "55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transport -d transport"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    profiles:
+      - local-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
