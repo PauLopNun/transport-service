@@ -32,27 +32,15 @@ build/
 ### VS Code ###
 .vscode/
 
-### Claude Code / AI-assisted development - shared project config ###
+### Claude Code — share settings.json but not personal local overrides ###
 !.claude/
-.claude/*
-!.claude/settings.json
-!.claude/skills/
-!.claude/skills/**
 .claude/CLAUDE.md
 .claude/settings.local.json
 
-### MCP project config - safe placeholders only, no real tokens ###
-!.mcp.json
-
-### Graphify (AI knowledge graph tool) - share useful outputs, ignore cache/metadata ###
-!graphify-out/
-!graphify-out/GRAPH_REPORT.md
-!graphify-out/graph.html
+### graphify (AI knowledge graph tool) ###
 graphify-out/graph.json
 graphify-out/manifest.json
 graphify-out/cost.json
 graphify-out/cache/
 graphify-out/.graphify_*.json
 
-# Local demo notes - not for GitHub
-docs/demo-local/

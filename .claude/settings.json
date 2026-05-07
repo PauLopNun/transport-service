@@ -1,5 +1,5 @@
 {
-  "enabledMcpjsonServers": ["github", "postgres"],
+  "enabledMcpjsonServers": ["github", "postgres", "trello-mcp"],
   "permissions": {
     "allow": [
       "WebFetch(domain:github.com)",

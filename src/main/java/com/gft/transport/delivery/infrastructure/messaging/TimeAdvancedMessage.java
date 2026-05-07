@@ -1,4 +1,10 @@
 package com.gft.transport.delivery.infrastructure.messaging;
 
-public record TimeAdvancedMessage(int currentDay) {
-}
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record TimeAdvancedMessage(
+        int previousDayNumber,
+        int currentDayNumber,
+        int daysAdvanced
+) {}

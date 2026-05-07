@@ -17,36 +17,20 @@ public class TimeAdvancedListener {
     private final AdvanceTrucks advanceTrucks;
     private final ObjectMapper objectMapper;
 
-    private Integer lastDay;
-
     @RabbitListener(queues = RabbitMQConfig.TIME_ADVANCED_QUEUE)
-    public synchronized void onMessage(Message message) {
-        int currentDay = readCurrentDay(message);
-
-        if (lastDay == null) {
-            lastDay = currentDay;
+    public void onMessage(Message message) {
+        TimeAdvancedMessage msg = readMessage(message);
+        if (msg.daysAdvanced() <= 0) {
             return;
         }
-
-        int daysAdvanced = calculateDaysAdvanced(currentDay);
-        if (daysAdvanced <= 0) {
-            return;
-        }
-
-        lastDay = currentDay;
-        advanceTrucks.execute(daysAdvanced, currentDay);
+        advanceTrucks.execute(msg.daysAdvanced(), msg.currentDayNumber());
     }
 
-    int calculateDaysAdvanced(int currentDay) {
-        return currentDay - lastDay;
-    }
-
-    private int readCurrentDay(Message message) {
+    private TimeAdvancedMessage readMessage(Message message) {
         try {
-            return objectMapper.readValue(message.getBody(), TimeAdvancedMessage.class).currentDay();
+            return objectMapper.readValue(message.getBody(), TimeAdvancedMessage.class);
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid time.advanced.v1 message", e);
         }
     }
-
 }
