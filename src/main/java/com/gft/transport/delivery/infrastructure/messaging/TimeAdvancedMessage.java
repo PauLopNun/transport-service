@@ -1,12 +1,10 @@
 package com.gft.transport.delivery.infrastructure.messaging;
 
-import java.time.Instant;
-import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record TimeAdvancedMessage(
-        UUID eventId,
         int previousDayNumber,
         int currentDayNumber,
-        int daysAdvanced,
-        Instant occurredAt
+        int daysAdvanced
 ) {}

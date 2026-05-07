@@ -44,6 +44,7 @@ import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("local")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class TimeAdvancedListenerIT {
 
@@ -65,7 +66,6 @@ class TimeAdvancedListenerIT {
         registry.add("spring.rabbitmq.port", rabbitmq::getAmqpPort);
         registry.add("spring.rabbitmq.username", rabbitmq::getAdminUsername);
         registry.add("spring.rabbitmq.password", rabbitmq::getAdminPassword);
-        registry.add("spring.rabbitmq.ssl.enabled", () -> "false");
     }
 
     @Autowired
