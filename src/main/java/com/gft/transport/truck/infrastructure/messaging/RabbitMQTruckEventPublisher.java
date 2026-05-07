@@ -5,6 +5,7 @@ import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
+import com.gft.transport.truck.infrastructure.messaging.dto.TruckPositionUpdatedMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckRegisteredMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckStatusChangedMessage;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+/**
+ * Trello: TRK-41, TRK-42 - RabbitMQ publisher for truck events.
+ */
 public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
@@ -37,6 +41,10 @@ public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
 
     @Override
     public void publish(TruckPositionUpdatedEvent event) {
-        // implemented in TRK-41
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.TRUCKS_EXCHANGE,
+                "truck.position.updated.v1",
+                TruckPositionUpdatedMessage.from(event)
+        );
     }
 }
