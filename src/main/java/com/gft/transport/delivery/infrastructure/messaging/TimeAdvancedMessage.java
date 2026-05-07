@@ -1,4 +1,12 @@
 package com.gft.transport.delivery.infrastructure.messaging;
 
-public record TimeAdvancedMessage(int currentDay) {
-}
+import java.time.Instant;
+import java.util.UUID;
+
+public record TimeAdvancedMessage(
+        UUID eventId,
+        int previousDayNumber,
+        int currentDayNumber,
+        int daysAdvanced,
+        Instant occurredAt
+) {}
