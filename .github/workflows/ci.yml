@@ -49,6 +49,10 @@ jobs:
             if [ -z "$MSG" ]; then
               continue
             fi
+            if echo "$MSG" | grep -qE "^Merge "; then
+              echo "Skipping merge commit: $MSG"
+              continue
+            fi
             echo "Checking: $MSG"
             if ! echo "$MSG" | grep -qE "^($VALID_TYPES): .+"; then
               echo "Invalid commit message: $MSG"
