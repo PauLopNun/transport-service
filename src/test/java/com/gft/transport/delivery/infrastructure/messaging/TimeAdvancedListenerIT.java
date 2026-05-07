@@ -33,11 +33,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
@@ -103,15 +104,14 @@ class TimeAdvancedListenerIT {
     }
 
     @Test
-    void advancesTruckAfterReceivingSecondTimeTick() {
+    void advancesTruckWhenDaysAdvancedIsOne() {
         TruckId truckId = TruckId.generate();
         DeliveryId deliveryId = DeliveryId.generate();
 
         seedInTransitTruck(truckId, deliveryId);
         seedPendingDelivery(truckId, deliveryId);
 
-        publishCurrentDay(1);
-        publishCurrentDay(2);
+        publishTimeAdvanced(1, 2, 1);
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             var truck = truckJpaRepository.findById(truckId.value()).orElseThrow();
@@ -122,33 +122,32 @@ class TimeAdvancedListenerIT {
     }
 
     @Test
-    void doesNotAdvanceTruckOnFirstTimeTick() {
+    void advancesMultipleStepsWhenDaysAdvancedIsGreaterThanOne() {
         TruckId truckId = TruckId.generate();
         DeliveryId deliveryId = DeliveryId.generate();
 
         seedInTransitTruck(truckId, deliveryId);
         seedPendingDelivery(truckId, deliveryId);
 
-        publishCurrentDay(1);
+        publishTimeAdvanced(1, 3, 2);
 
-        await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
             var truck = truckJpaRepository.findById(truckId.value()).orElseThrow();
-            assertThat(truck.getX()).isEqualTo(0);
+            assertThat(truck.getX()).isEqualTo(2);
             assertThat(truck.getY()).isEqualTo(0);
-            assertThat(truck.getStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
+            assertThat(truck.getStatus()).isEqualTo(TruckStatus.AVAILABLE);
         });
     }
 
     @Test
-    void doesNotAdvanceTruckWhenCurrentDayDoesNotIncrease() {
+    void doesNotAdvanceTruckWhenDaysAdvancedIsZero() {
         TruckId truckId = TruckId.generate();
         DeliveryId deliveryId = DeliveryId.generate();
 
         seedInTransitTruck(truckId, deliveryId);
         seedPendingDelivery(truckId, deliveryId);
 
-        publishCurrentDay(1);
-        publishCurrentDay(1);
+        publishTimeAdvanced(1, 1, 0);
 
         await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
             var truck = truckJpaRepository.findById(truckId.value()).orElseThrow();
@@ -195,12 +194,15 @@ class TimeAdvancedListenerIT {
                 .build());
     }
 
-    private void publishCurrentDay(int currentDay) {
+    private void publishTimeAdvanced(int previousDayNumber, int currentDayNumber, int daysAdvanced) {
+        String json = String.format(
+                "{\"eventId\":\"%s\",\"previousDayNumber\":%d,\"currentDayNumber\":%d,\"daysAdvanced\":%d,\"occurredAt\":\"%s\"}",
+                UUID.randomUUID(), previousDayNumber, currentDayNumber, daysAdvanced, Instant.now()
+        );
         Message message = MessageBuilder
-                .withBody(("{\"currentDay\":" + currentDay + "}").getBytes(StandardCharsets.UTF_8))
+                .withBody(json.getBytes(StandardCharsets.UTF_8))
                 .setContentType("application/json")
                 .build();
-
         rabbitTemplate.send(
                 RabbitMQConfig.SIMULATION_EXCHANGE,
                 RabbitMQConfig.TIME_ADVANCED_ROUTING_KEY,
