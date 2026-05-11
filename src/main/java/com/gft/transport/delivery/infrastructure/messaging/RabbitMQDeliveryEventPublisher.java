@@ -1,5 +1,6 @@
 package com.gft.transport.delivery.infrastructure.messaging;
 
+import com.gft.transport.delivery.application.port.out.DeliveryEventPublisher;
 import com.gft.transport.delivery.domain.event.DeliveryCompletedEvent;
 import com.gft.transport.delivery.infrastructure.messaging.dto.DeliveryCompletedMessage;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
@@ -9,10 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-/**
- * Trello: TRK-43 / TRK-252 - RabbitMQ publisher for delivery.completed.v1.
- */
-public class DeliveryEventPublisher implements com.gft.transport.delivery.application.port.out.DeliveryEventPublisher {
+public class RabbitMQDeliveryEventPublisher implements DeliveryEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
 

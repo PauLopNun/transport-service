@@ -5,6 +5,7 @@ import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckStatus;
 import com.gft.transport.truck.domain.exception.NoTruckAvailableException;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class OptimalTruckSelector {
@@ -15,14 +16,11 @@ public class OptimalTruckSelector {
         this.distanceCalculator = distanceCalculator;
     }
 
-    public Truck select(List<Truck> trucks, Location origin, int requiredItems) {
+    public Truck select(List<Truck> trucks, Location origin, int requiredItemCount) {
         return trucks.stream()
-                .filter(t -> t.getStatus() == TruckStatus.AVAILABLE)
-                .filter(t -> t.canAccept(requiredItems))
-                .min((a, b) -> Integer.compare(
-                        distanceCalculator.calculate(a.getLocation(), origin),
-                        distanceCalculator.calculate(b.getLocation(), origin)
-                ))
+                .filter(truck -> truck.getStatus() == TruckStatus.AVAILABLE)
+                .filter(truck -> truck.canAccept(requiredItemCount))
+                .min(Comparator.comparingInt(truck -> distanceCalculator.calculate(truck.getLocation(), origin)))
                 .orElseThrow(NoTruckAvailableException::new);
     }
 }

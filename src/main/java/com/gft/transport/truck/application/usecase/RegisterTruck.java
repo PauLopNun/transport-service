@@ -19,6 +19,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RegisterTruck {
 
+    private static final int SIMULATION_START_DAY = 0;
+
     private final TruckRepository truckRepository;
     private final TruckEventPublisher eventPublisher;
 
@@ -40,7 +42,7 @@ public class RegisterTruck {
                 truck.getName(),
                 truck.getLocation(),
                 truck.getCapacity(),
-                0
+                SIMULATION_START_DAY
         ));
 
         eventPublisher.publish(new TruckStatusChangedEvent(
@@ -50,7 +52,7 @@ public class RegisterTruck {
                 truck.getLocation(),
                 0,
                 truck.getCapacity(),
-                0,
+                SIMULATION_START_DAY,
                 "TRUCK_REGISTERED"
         ));
 

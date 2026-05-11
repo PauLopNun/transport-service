@@ -51,6 +51,16 @@ class WarehouseRegisteredListenerTest {
                 .hasMessage("Invalid warehouse.registered.v1 message");
     }
 
+    @Test
+    void registersWarehouseLocationWhenMessageIsDoubleEncoded() throws Exception {
+        String innerJson = "{\"warehouseId\": \"warehouse-north-01\", \"location\": {\"x\": 5, \"y\": 10}}";
+        Message message = buildMessage(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(innerJson));
+
+        listener.onMessage(message);
+
+        verify(locationResolver).register("warehouse-north-01", new Location(5, 10));
+    }
+
     private Message buildMessage(String json) {
         return MessageBuilder
                 .withBody(json.getBytes(StandardCharsets.UTF_8))

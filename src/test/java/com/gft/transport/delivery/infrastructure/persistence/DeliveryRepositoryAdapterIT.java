@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DeliveryRepositoryAdapterIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("transport_test")
             .withUsername("test")
             .withPassword("test");
@@ -112,6 +112,25 @@ class DeliveryRepositoryAdapterIT {
 
         Delivery found = adapter.findById(delivery.getDeliveryId()).orElseThrow();
         assertThat(found.getOrigin()).isEqualTo(new Location(2, 3));
+    }
+
+    @Test
+    void savesAndRestoresDeliveryWithNullOrigin() {
+        Delivery delivery = Delivery.builder()
+                .deliveryId(DeliveryId.generate())
+                .shipmentId(java.util.UUID.randomUUID())
+                .truckId(TruckId.generate())
+                .origin(null)
+                .destination(new Location(5, 5))
+                .items(List.of(new DeliveryItem("wood", 1)))
+                .assignedAt(1)
+                .completedAt(null)
+                .build();
+
+        adapter.save(delivery);
+
+        Delivery found = adapter.findById(delivery.getDeliveryId()).orElseThrow();
+        assertThat(found.getOrigin()).isNull();
     }
 
     private Delivery buildDeliveryForTruck(TruckId truckId) {

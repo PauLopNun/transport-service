@@ -3,12 +3,13 @@ package com.gft.transport.delivery.application.usecase;
 import com.gft.transport.delivery.application.port.out.DeliveryEventPublisher;
 import com.gft.transport.delivery.domain.Delivery;
 import com.gft.transport.delivery.domain.DeliveryId;
+import com.gft.transport.delivery.domain.DeliveryItem;
+import com.gft.transport.delivery.domain.event.DeliveryCompletedEvent;
 import com.gft.transport.delivery.domain.repository.DeliveryRepository;
 import com.gft.transport.truck.application.port.out.TruckEventPublisher;
 import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckStatus;
-import com.gft.transport.delivery.domain.event.DeliveryCompletedEvent;
 import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.domain.repository.TruckRepository;
@@ -29,83 +30,114 @@ public class AdvanceTrucks {
 
     public void execute(int daysAdvanced, int currentDay) {
         truckRepository.findAll().stream()
-                .filter(t -> t.getStatus() == TruckStatus.IN_TRANSIT)
-                .forEach(truck -> processTruck(truck, daysAdvanced, currentDay));
+                .filter(truck -> truck.getStatus() == TruckStatus.IN_TRANSIT)
+                .forEach(truck -> advanceTruck(truck, daysAdvanced, currentDay));
     }
 
-    private void processTruck(Truck truck, int daysAdvanced, int currentDay) {
-        List<Delivery> pending = deliveryRepository.findByTruckId(truck.getTruckId()).stream()
-                .filter(d -> !d.isCompleted())
-                .toList();
-
-        if (pending.isEmpty()) return;
+    private void advanceTruck(Truck truck, int daysAdvanced, int currentDay) {
+        List<Delivery> pendingDeliveries = findPendingDeliveries(truck);
+        if (pendingDeliveries.isEmpty()) return;
 
         Truck current = truck;
-        List<Delivery> remaining = new ArrayList<>(pending);
+        List<Delivery> remaining = new ArrayList<>(pendingDeliveries);
 
         for (int day = 0; day < daysAdvanced && !remaining.isEmpty(); day++) {
-            Delivery target = remaining.get(0);
-            Location next = nextStep(current.getLocation(), target.getDestination());
-
-            current = rebuildTruck(current, next);
-            truckRepository.save(current);
-            truckEventPublisher.publish(new TruckPositionUpdatedEvent(current.getTruckId(), next));
-
-            if (target.isArrived(next)) {
-                Delivery completed = target.complete(currentDay);
-                deliveryRepository.save(completed);
-                deliveryEventPublisher.publish(new DeliveryCompletedEvent(
-                        completed.getShipmentId(), completed.getTruckId(),
-                        completed.getItems(), completed.getDestination(),
-                        currentDay));
-
-                remaining.remove(0);
-                int freedItems = target.getItems().stream().mapToInt(i -> i.quantity()).sum();
-                List<DeliveryId> updatedIds = new ArrayList<>(current.getDeliveryIds());
-                updatedIds.remove(target.getDeliveryId());
-
-                if (remaining.isEmpty()) {
-                    current = rebuildTruckWithStatus(current, TruckStatus.AVAILABLE, 0, List.of());
-                    truckRepository.save(current);
-                    truckEventPublisher.publish(new TruckStatusChangedEvent(
-                            current.getTruckId(), TruckStatus.IN_TRANSIT, TruckStatus.AVAILABLE,
-                            current.getLocation(), 0, current.getCapacity(), currentDay, "RETURNED_TO_BASE"));
-                } else {
-                    int newLoad = current.getCurrentLoad() - freedItems;
-                    current = rebuildTruckWithStatus(current, TruckStatus.IN_TRANSIT, newLoad, updatedIds);
-                    truckRepository.save(current);
-                    truckEventPublisher.publish(new TruckStatusChangedEvent(
-                            current.getTruckId(), TruckStatus.IN_TRANSIT, TruckStatus.IN_TRANSIT,
-                            current.getLocation(), newLoad, current.getCapacity(), currentDay, "LOAD_UPDATED"));
-                }
+            current = moveOneDayToward(current, remaining.get(0).getDestination());
+            if (remaining.get(0).isArrived(current.getLocation())) {
+                current = handleDeliveryArrival(current, remaining, currentDay);
             }
         }
     }
 
-    private Location nextStep(Location current, Location destination) {
+    private List<Delivery> findPendingDeliveries(Truck truck) {
+        return deliveryRepository.findByTruckId(truck.getTruckId()).stream()
+                .filter(delivery -> !delivery.isCompleted())
+                .toList();
+    }
+
+    private Truck moveOneDayToward(Truck truck, Location destination) {
+        Location nextPosition = calculateNextStep(truck.getLocation(), destination);
+        Truck movedTruck = truck.toBuilder().location(nextPosition).build();
+        truckRepository.save(movedTruck);
+        truckEventPublisher.publish(new TruckPositionUpdatedEvent(movedTruck.getTruckId(), nextPosition));
+        return movedTruck;
+    }
+
+    private Truck handleDeliveryArrival(Truck truck, List<Delivery> remainingDeliveries, int currentDay) {
+        Delivery arrivedDelivery = remainingDeliveries.remove(0);
+        completeDelivery(arrivedDelivery, currentDay);
+
+        if (remainingDeliveries.isEmpty()) {
+            return returnTruckToBase(truck, currentDay);
+        }
+        return unloadDeliveredItemsFromTruck(truck, arrivedDelivery, currentDay);
+    }
+
+    private void completeDelivery(Delivery delivery, int currentDay) {
+        Delivery completedDelivery = delivery.complete(currentDay);
+        deliveryRepository.save(completedDelivery);
+        deliveryEventPublisher.publish(new DeliveryCompletedEvent(
+                completedDelivery.getShipmentId(),
+                completedDelivery.getTruckId(),
+                completedDelivery.getItems(),
+                completedDelivery.getDestination(),
+                currentDay
+        ));
+    }
+
+    private Truck returnTruckToBase(Truck truck, int currentDay) {
+        Truck availableTruck = truck.toBuilder()
+                .status(TruckStatus.AVAILABLE)
+                .currentLoad(0)
+                .deliveryIds(List.of())
+                .build();
+        truckRepository.save(availableTruck);
+        truckEventPublisher.publish(new TruckStatusChangedEvent(
+                availableTruck.getTruckId(),
+                TruckStatus.IN_TRANSIT,
+                TruckStatus.AVAILABLE,
+                availableTruck.getLocation(),
+                0,
+                availableTruck.getCapacity(),
+                currentDay,
+                "RETURNED_TO_BASE"
+        ));
+        return availableTruck;
+    }
+
+    private Truck unloadDeliveredItemsFromTruck(Truck truck, Delivery completedDelivery, int currentDay) {
+        int unloadedItemCount = completedDelivery.getItems().stream()
+                .mapToInt(DeliveryItem::quantity)
+                .sum();
+        int updatedLoad = truck.getCurrentLoad() - unloadedItemCount;
+        List<DeliveryId> remainingDeliveryIds = truck.getDeliveryIds().stream()
+                .filter(id -> !id.equals(completedDelivery.getDeliveryId()))
+                .toList();
+
+        Truck updatedTruck = truck.toBuilder()
+                .currentLoad(updatedLoad)
+                .deliveryIds(remainingDeliveryIds)
+                .build();
+        truckRepository.save(updatedTruck);
+        truckEventPublisher.publish(new TruckStatusChangedEvent(
+                updatedTruck.getTruckId(),
+                TruckStatus.IN_TRANSIT,
+                TruckStatus.IN_TRANSIT,
+                updatedTruck.getLocation(),
+                updatedLoad,
+                updatedTruck.getCapacity(),
+                currentDay,
+                "LOAD_UPDATED"
+        ));
+        return updatedTruck;
+    }
+
+    private Location calculateNextStep(Location current, Location destination) {
         if (current.x() != destination.x()) {
-            return new Location(current.x() + (destination.x() > current.x() ? 1 : -1), current.y());
+            int xDirection = destination.x() > current.x() ? 1 : -1;
+            return new Location(current.x() + xDirection, current.y());
         }
-        if (current.y() != destination.y()) {
-            return new Location(current.x(), current.y() + (destination.y() > current.y() ? 1 : -1));
-        }
-        return current;
+        int yDirection = destination.y() > current.y() ? 1 : -1;
+        return new Location(current.x(), current.y() + yDirection);
     }
-
-    private Truck rebuildTruck(Truck truck, Location location) {
-        return Truck.builder()
-                .truckId(truck.getTruckId()).name(truck.getName()).location(location)
-                .status(truck.getStatus()).capacity(truck.getCapacity()).speed(truck.getSpeed())
-                .currentLoad(truck.getCurrentLoad()).deliveryIds(truck.getDeliveryIds())
-                .build();
-    }
-
-    private Truck rebuildTruckWithStatus(Truck truck, TruckStatus status, int load, List<DeliveryId> ids) {
-        return Truck.builder()
-                .truckId(truck.getTruckId()).name(truck.getName()).location(truck.getLocation())
-                .status(status).capacity(truck.getCapacity()).speed(truck.getSpeed())
-                .currentLoad(load).deliveryIds(ids)
-                .build();
-    }
-
 }

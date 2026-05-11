@@ -1,1 +1,0 @@
-package com.gft.transport.truck.infrastructure.messaging;

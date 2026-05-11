@@ -2,6 +2,7 @@ package com.gft.transport.truck.application.usecase;
 
 import com.gft.transport.delivery.domain.Delivery;
 import com.gft.transport.delivery.domain.DeliveryId;
+import com.gft.transport.delivery.domain.DeliveryItem;
 import com.gft.transport.delivery.domain.repository.DeliveryRepository;
 import com.gft.transport.truck.application.port.out.TruckEventPublisher;
 import com.gft.transport.truck.domain.Truck;
@@ -26,26 +27,60 @@ public class AssignTruck {
     private final TruckEventPublisher eventPublisher;
 
     public void execute(AssignTruckCommand command) {
-        int requiredItems = command.items().stream()
-                .mapToInt(item -> item.quantity())
+        int totalItemCount = command.items().stream()
+                .mapToInt(DeliveryItem::quantity)
                 .sum();
 
         List<Truck> allTrucks = truckRepository.findAll();
-        boolean additionalLoad = false;
-        Truck truck;
+        boolean isAssigningToInTransitTruck = false;
+        Truck selectedTruck;
 
         try {
-            truck = truckSelector.select(allTrucks, command.origin(), requiredItems);
+            selectedTruck = truckSelector.select(allTrucks, command.origin(), totalItemCount);
         } catch (NoTruckAvailableException e) {
-            truck = allTrucks.stream()
-                    .filter(t -> t.getStatus() == TruckStatus.IN_TRANSIT)
-                    .filter(t -> t.canAccept(requiredItems))
-                    .findFirst()
-                    .orElseThrow(NoTruckAvailableException::new);
-            additionalLoad = true;
+            selectedTruck = findInTransitTruckWithCapacity(allTrucks, totalItemCount);
+            isAssigningToInTransitTruck = true;
         }
 
-        Delivery delivery = Delivery.builder()
+        Delivery newDelivery = buildDelivery(command, selectedTruck);
+        deliveryRepository.save(newDelivery);
+
+        List<DeliveryId> deliveryIdsWithNewAssignment = new ArrayList<>(selectedTruck.getDeliveryIds());
+        deliveryIdsWithNewAssignment.add(newDelivery.getDeliveryId());
+
+        Truck dispatchedTruck = selectedTruck.toBuilder()
+                .status(TruckStatus.IN_TRANSIT)
+                .currentLoad(selectedTruck.getCurrentLoad() + totalItemCount)
+                .deliveryIds(deliveryIdsWithNewAssignment)
+                .build();
+
+        truckRepository.save(dispatchedTruck);
+
+        TruckStatus previousStatus = isAssigningToInTransitTruck ? TruckStatus.IN_TRANSIT : TruckStatus.AVAILABLE;
+        String statusChangeReason = isAssigningToInTransitTruck ? "LOAD_UPDATED" : "DISPATCHED";
+
+        eventPublisher.publish(new TruckStatusChangedEvent(
+                dispatchedTruck.getTruckId(),
+                previousStatus,
+                TruckStatus.IN_TRANSIT,
+                dispatchedTruck.getLocation(),
+                dispatchedTruck.getCurrentLoad(),
+                dispatchedTruck.getCapacity(),
+                command.requestedAt(),
+                statusChangeReason
+        ));
+    }
+
+    private Truck findInTransitTruckWithCapacity(List<Truck> trucks, int requiredItemCount) {
+        return trucks.stream()
+                .filter(truck -> truck.getStatus() == TruckStatus.IN_TRANSIT)
+                .filter(truck -> truck.canAccept(requiredItemCount))
+                .findFirst()
+                .orElseThrow(NoTruckAvailableException::new);
+    }
+
+    private Delivery buildDelivery(AssignTruckCommand command, Truck truck) {
+        return Delivery.builder()
                 .deliveryId(DeliveryId.generate())
                 .shipmentId(command.shipmentId())
                 .truckId(truck.getTruckId())
@@ -55,37 +90,5 @@ public class AssignTruck {
                 .assignedAt(command.requestedAt())
                 .completedAt(null)
                 .build();
-
-        deliveryRepository.save(delivery);
-
-        var updatedDeliveryIds = new ArrayList<>(truck.getDeliveryIds());
-        updatedDeliveryIds.add(delivery.getDeliveryId());
-
-        Truck updatedTruck = Truck.builder()
-                .truckId(truck.getTruckId())
-                .name(truck.getName())
-                .location(truck.getLocation())
-                .status(TruckStatus.IN_TRANSIT)
-                .capacity(truck.getCapacity())
-                .speed(truck.getSpeed())
-                .currentLoad(truck.getCurrentLoad() + requiredItems)
-                .deliveryIds(updatedDeliveryIds)
-                .build();
-
-        truckRepository.save(updatedTruck);
-
-        TruckStatus oldStatus = additionalLoad ? TruckStatus.IN_TRANSIT : TruckStatus.AVAILABLE;
-        String reason = additionalLoad ? "LOAD_UPDATED" : "DISPATCHED";
-
-        eventPublisher.publish(new TruckStatusChangedEvent(
-                updatedTruck.getTruckId(),
-                oldStatus,
-                TruckStatus.IN_TRANSIT,
-                updatedTruck.getLocation(),
-                updatedTruck.getCurrentLoad(),
-                updatedTruck.getCapacity(),
-                command.requestedAt(),
-                reason
-        ));
     }
 }

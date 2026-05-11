@@ -81,6 +81,39 @@ class DispatchRequestedListenerTest {
         verifyNoInteractions(assignTruck);
     }
 
+    @Test
+    void dispatchesTruckWhenMessageIsDoubleEncoded() throws Exception {
+        UUID shipmentId = UUID.randomUUID();
+        Location origin = new Location(0, 10);
+        Location destination = new Location(10, 0);
+
+        when(locationResolver.resolve("warehouse-north-01")).thenReturn(origin);
+        when(locationResolver.resolve("warehouse-south-03")).thenReturn(destination);
+
+        String innerJson = """
+                {
+                    "shipmentId": "%s",
+                    "originId": "warehouse-north-01",
+                    "destinationId": "warehouse-south-03",
+                    "items": [{"materialType": "wood", "quantity": 6}],
+                    "requestedAt": 3
+                }
+                """.formatted(shipmentId);
+        Message message = buildMessage(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(innerJson));
+
+        listener.onMessage(message);
+
+        ArgumentCaptor<AssignTruckCommand> captor = ArgumentCaptor.forClass(AssignTruckCommand.class);
+        verify(assignTruck).execute(captor.capture());
+
+        AssignTruckCommand command = captor.getValue();
+        assertThat(command.shipmentId()).isEqualTo(shipmentId);
+        assertThat(command.origin()).isEqualTo(origin);
+        assertThat(command.destination()).isEqualTo(destination);
+        assertThat(command.items()).containsExactly(new DeliveryItem("wood", 6));
+        assertThat(command.requestedAt()).isEqualTo(3);
+    }
+
     private Message buildMessage(String json) {
         return MessageBuilder
                 .withBody(json.getBytes(StandardCharsets.UTF_8))
