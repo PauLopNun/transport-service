@@ -13,7 +13,7 @@ public class RabbitMQConfig {
 
     public static final String TRUCKS_EXCHANGE                = "trucks.exchange";
     public static final String SHIPMENTS_EXCHANGE             = "shipments.exchange";
-    public static final String SIMULATION_EXCHANGE            = "simulation.exchange";
+    public static final String SIMULATION_EXCHANGE            = "simulation.events";
     public static final String WAREHOUSES_EXCHANGE            = "warehouses.exchange";
 
     public static final String SHIPMENT_REQUESTED_QUEUE       = "trucks.shipment.requested";
