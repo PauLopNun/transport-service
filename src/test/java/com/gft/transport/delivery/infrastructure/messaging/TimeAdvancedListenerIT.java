@@ -1,5 +1,6 @@
 package com.gft.transport.delivery.infrastructure.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gft.transport.delivery.application.port.out.DeliveryEventPublisher;
 import com.gft.transport.delivery.domain.Delivery;
 import com.gft.transport.delivery.domain.DeliveryId;
@@ -69,6 +70,9 @@ class TimeAdvancedListenerIT {
     }
 
     @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
     private RabbitTemplate rabbitTemplate;
 
     @Autowired
@@ -106,6 +110,19 @@ class TimeAdvancedListenerIT {
     }
 
     @Test
+    void deserializesAllFieldsFromRubensFormat() throws Exception {
+        String json = """
+                {"eventId":"abc","previousDay":1,"currentDay":3,"daysAdvanced":2,"occurredAt":"2026-05-11T10:00:00Z"}
+                """;
+
+        TimeAdvancedMessage msg = objectMapper.readValue(json, TimeAdvancedMessage.class);
+
+        assertThat(msg.previousDayNumber()).as("previousDay").isEqualTo(1);
+        assertThat(msg.currentDayNumber()).as("currentDay").isEqualTo(3);
+        assertThat(msg.daysAdvanced()).as("daysAdvanced").isEqualTo(2);
+    }
+
+    @Test
     void advancesTruckWhenDaysAdvancedIsOne() {
         TruckId truckId = TruckId.generate();
         DeliveryId deliveryId = DeliveryId.generate();
@@ -138,6 +155,8 @@ class TimeAdvancedListenerIT {
             assertThat(truck.getX()).isEqualTo(2);
             assertThat(truck.getY()).isEqualTo(0);
             assertThat(truck.getStatus()).isEqualTo(TruckStatus.AVAILABLE);
+            var delivery = deliveryJpaRepository.findById(deliveryId.value()).orElseThrow();
+            assertThat(delivery.getCompletedAt()).isEqualTo(3);
         });
     }
 
@@ -198,7 +217,7 @@ class TimeAdvancedListenerIT {
 
     private void publishTimeAdvanced(int previousDayNumber, int currentDayNumber, int daysAdvanced) {
         String json = String.format(
-                "{\"eventId\":\"%s\",\"previousDayNumber\":%d,\"currentDayNumber\":%d,\"daysAdvanced\":%d,\"occurredAt\":\"%s\"}",
+                "{\"eventId\":\"%s\",\"previousDay\":%d,\"currentDay\":%d,\"daysAdvanced\":%d,\"occurredAt\":\"%s\"}",
                 UUID.randomUUID(), previousDayNumber, currentDayNumber, daysAdvanced, Instant.now()
         );
         Message message = MessageBuilder

@@ -41,6 +41,7 @@ spring:
   config:
     activate:
       on-profile: cloudamqp
+    import: "optional:file:./.env[.properties]"
 
   datasource:
     url: jdbc:postgresql://localhost:55432/transport?user=transport&password=transport
