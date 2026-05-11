@@ -137,12 +137,6 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<configuration>
 					<argLine>@{argLine}</argLine>
-					<excludes>
-						<!-- RabbitMQ IT tests require Docker Hub access to pull rabbitmq image.
-						     Run with -P rabbitmq-it when Docker Hub is available. -->
-						<exclude>**/TruckEventPublisherIT.java</exclude>
-						<exclude>**/TimeAdvancedListenerIT.java</exclude>
-					</excludes>
 				</configuration>
 				<executions>
 					<execution>
