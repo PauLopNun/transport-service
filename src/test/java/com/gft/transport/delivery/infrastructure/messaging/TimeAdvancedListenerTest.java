@@ -12,6 +12,7 @@ import org.springframework.amqp.core.MessageBuilder;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
@@ -47,6 +48,16 @@ class TimeAdvancedListenerTest {
         listener.onMessage(buildMessage("{\"previousDay\":2,\"currentDay\":1,\"daysAdvanced\":-1}"));
 
         verifyNoInteractions(advanceTrucks);
+    }
+
+    @Test
+    void deserializesAllFieldsFromRubensFormat() throws Exception {
+        String json = "{\"previousDay\":1,\"currentDay\":3,\"daysAdvanced\":2}";
+        TimeAdvancedMessage msg = new ObjectMapper().readValue(json, TimeAdvancedMessage.class);
+
+        assertThat(msg.previousDayNumber()).isEqualTo(1);
+        assertThat(msg.currentDayNumber()).isEqualTo(3);
+        assertThat(msg.daysAdvanced()).isEqualTo(2);
     }
 
     @Test
