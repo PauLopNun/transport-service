@@ -31,17 +31,23 @@ public class RabbitMQConfig {
 
     @Bean
     public TopicExchange shipmentsExchange() {
-        return new TopicExchange(SHIPMENTS_EXCHANGE);
+        TopicExchange exchange = new TopicExchange(SHIPMENTS_EXCHANGE);
+        exchange.setShouldDeclare(false);
+        return exchange;
     }
 
     @Bean
     public TopicExchange simulationExchange() {
-        return new TopicExchange(SIMULATION_EXCHANGE);
+        TopicExchange exchange = new TopicExchange(SIMULATION_EXCHANGE);
+        exchange.setShouldDeclare(false);
+        return exchange;
     }
 
     @Bean
     public TopicExchange warehousesExchange() {
-        return new TopicExchange(WAREHOUSES_EXCHANGE);
+        TopicExchange exchange = new TopicExchange(WAREHOUSES_EXCHANGE);
+        exchange.setShouldDeclare(false);
+        return exchange;
     }
 
     @Bean
