@@ -30,21 +30,21 @@ class TimeAdvancedListenerTest {
 
     @Test
     void callsAdvanceTrucksWithDaysAdvancedAndCurrentDay() {
-        listener.onMessage(buildMessage("{\"previousDayNumber\":1,\"currentDayNumber\":3,\"daysAdvanced\":2}"));
+        listener.onMessage(buildMessage("{\"previousDay\":1,\"currentDay\":3,\"daysAdvanced\":2}"));
 
         verify(advanceTrucks).execute(2, 3);
     }
 
     @Test
     void skipsExecutionWhenDaysAdvancedIsZero() {
-        listener.onMessage(buildMessage("{\"previousDayNumber\":1,\"currentDayNumber\":1,\"daysAdvanced\":0}"));
+        listener.onMessage(buildMessage("{\"previousDay\":1,\"currentDay\":1,\"daysAdvanced\":0}"));
 
         verifyNoInteractions(advanceTrucks);
     }
 
     @Test
     void skipsExecutionWhenDaysAdvancedIsNegative() {
-        listener.onMessage(buildMessage("{\"previousDayNumber\":2,\"currentDayNumber\":1,\"daysAdvanced\":-1}"));
+        listener.onMessage(buildMessage("{\"previousDay\":2,\"currentDay\":1,\"daysAdvanced\":-1}"));
 
         verifyNoInteractions(advanceTrucks);
     }
