@@ -78,8 +78,7 @@ class DispatchRequestedListenerTest {
         UUID shipmentId = UUID.randomUUID();
         when(locationResolver.resolve("warehouse-north-01")).thenReturn(new Location(0, 10));
         when(locationResolver.resolve("warehouse-south-03")).thenReturn(new Location(10, 0));
-        doThrow(new NoTruckAvailableException("No available truck found for the requested shipment"))
-                .when(assignTruck).execute(any());
+        doThrow(new NoTruckAvailableException()).when(assignTruck).execute(any());
 
         Message message = buildMessage("""
                 {
