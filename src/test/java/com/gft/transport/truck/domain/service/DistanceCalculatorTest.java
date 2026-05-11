@@ -80,4 +80,16 @@ class DistanceCalculatorTest {
         // path: (-2,0) → (0,0) → (0,3), point (-1,0) is on horizontal leg
         assertThat(calculator.isOnRoute(new Location(-1, 0), new Location(-2, 0), new Location(0, 3))).isTrue();
     }
+
+    @Test
+    void isOnRouteReturnsFalseWhenPointIsOnSameYButBeforeXRange() {
+        // path: (0,0) → (3,0) → (3,4), point (-1,0) has same Y as from but X is before range
+        assertThat(calculator.isOnRoute(new Location(-1, 0), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseWhenPointIsOnSameXAsDestinationButBeyondYRange() {
+        // path: (0,0) → (3,0) → (3,4), point (3,5) shares X with destination but Y is past range
+        assertThat(calculator.isOnRoute(new Location(3, 5), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
 }

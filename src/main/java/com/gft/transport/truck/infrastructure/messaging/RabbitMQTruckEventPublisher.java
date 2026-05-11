@@ -14,9 +14,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-/**
- * Trello: TRK-41, TRK-42 - RabbitMQ publisher for truck events.
- */
 public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;

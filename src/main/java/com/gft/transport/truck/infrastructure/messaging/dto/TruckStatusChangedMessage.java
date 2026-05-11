@@ -11,14 +11,14 @@ public class TruckStatusChangedMessage {
     String truckId;
     String oldStatus;
     String newStatus;
-    PositionDto position;
+    LocationDto position;
     int currentLoad;
     int capacity;
     int timestamp;
     String reason;
 
     @Value
-    public static class PositionDto {
+    public static class LocationDto {
         int x;
         int y;
     }
@@ -28,7 +28,7 @@ public class TruckStatusChangedMessage {
                 .truckId(event.getTruckId().value().toString())
                 .oldStatus(event.getOldStatus() != null ? event.getOldStatus().name() : null)
                 .newStatus(event.getNewStatus().name())
-                .position(new PositionDto(event.getPosition().x(), event.getPosition().y()))
+                .position(new LocationDto(event.getPosition().x(), event.getPosition().y()))
                 .currentLoad(event.getCurrentLoad())
                 .capacity(event.getCapacity())
                 .timestamp(event.getTimestamp())

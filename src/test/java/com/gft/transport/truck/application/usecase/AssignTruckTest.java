@@ -131,6 +131,29 @@ class AssignTruckTest {
     }
 
     @Test
+    void assignsToInTransitTruckAndFiltersOutAvailableWithNoCapacity() {
+        Truck availableButFull = Truck.builder()
+                .truckId(TruckId.generate()).name("AvailableFull")
+                .location(new Location(0, 0)).status(TruckStatus.AVAILABLE)
+                .capacity(3).currentLoad(3).deliveryIds(List.of()).build();
+
+        Truck inTransitWithCapacity = Truck.builder()
+                .truckId(TruckId.generate()).name("InTransit")
+                .location(new Location(1, 0)).status(TruckStatus.IN_TRANSIT)
+                .capacity(10).currentLoad(2)
+                .deliveryIds(List.of(com.gft.transport.delivery.domain.DeliveryId.generate())).build();
+
+        when(truckRepository.findAll()).thenReturn(List.of(availableButFull, inTransitWithCapacity));
+
+        assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 5));
+
+        ArgumentCaptor<TruckStatusChangedEvent> captor = ArgumentCaptor.forClass(TruckStatusChangedEvent.class);
+        verify(eventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getReason()).isEqualTo("LOAD_UPDATED");
+        assertThat(captor.getValue().getTruckId()).isEqualTo(inTransitWithCapacity.getTruckId());
+    }
+
+    @Test
     void throwsWhenInTransitTruckAlsoHasNoCapacity() {
         Truck full = Truck.builder()
                 .truckId(TruckId.generate())

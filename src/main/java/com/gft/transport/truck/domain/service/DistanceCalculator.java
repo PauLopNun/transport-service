@@ -9,14 +9,9 @@ public class DistanceCalculator {
     }
 
     public boolean isOnRoute(Location point, Location from, Location to) {
-        // Manhattan movement: X first, then Y
-        // Horizontal leg: y == from.y, x between from.x and to.x
-        boolean onHorizontal = point.y() == from.y()
-                && isBetween(point.x(), from.x(), to.x());
-        // Vertical leg: x == to.x, y between from.y and to.y
-        boolean onVertical = point.x() == to.x()
-                && isBetween(point.y(), from.y(), to.y());
-        return onHorizontal || onVertical;
+        boolean onHorizontalLeg = point.y() == from.y() && isBetween(point.x(), from.x(), to.x());
+        boolean onVerticalLeg = point.x() == to.x() && isBetween(point.y(), from.y(), to.y());
+        return onHorizontalLeg || onVerticalLeg;
     }
 
     private boolean isBetween(int value, int a, int b) {
