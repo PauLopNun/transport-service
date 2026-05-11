@@ -8,9 +8,6 @@ import java.util.List;
 
 @Value
 @Builder
-/**
- * Trello: TRK-43 / TRK-251 - Publish delivery.completed.v1.
- */
 public class DeliveryCompletedMessage {
 
     String shipmentId;

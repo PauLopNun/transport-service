@@ -6,9 +6,6 @@ import lombok.Value;
 
 @Value
 @Builder
-/**
- * Trello: TRK-41 / TRK-241 - Publish truck.position.updated.v1.
- */
 public class TruckPositionUpdatedMessage {
 
     String truckId;

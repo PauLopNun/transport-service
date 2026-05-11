@@ -3,9 +3,11 @@ package com.gft.transport.truck.infrastructure.messaging;
 import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
+import com.gft.transport.truck.infrastructure.messaging.dto.TruckPositionUpdatedMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckRegisteredMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckStatusChangedMessage;
 import org.junit.jupiter.api.Test;
@@ -53,6 +55,26 @@ class RabbitMQTruckEventPublisherTest {
         assertThat(sent.getOldStatus()).isEqualTo("AVAILABLE");
         assertThat(sent.getNewStatus()).isEqualTo("IN_TRANSIT");
         assertThat(sent.getReason()).isEqualTo("DISPATCHED");
+    }
+
+    @Test
+    void publishesPositionUpdatedEventToCorrectExchangeAndRoutingKey() {
+        TruckId truckId = TruckId.generate();
+        TruckPositionUpdatedEvent event = new TruckPositionUpdatedEvent(truckId, new Location(5, 3));
+
+        publisher.publish(event);
+
+        ArgumentCaptor<TruckPositionUpdatedMessage> captor = ArgumentCaptor.forClass(TruckPositionUpdatedMessage.class);
+        verify(rabbitTemplate).convertAndSend(
+                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.TRUCKS_EXCHANGE),
+                org.mockito.ArgumentMatchers.eq("truck.position.updated.v1"),
+                captor.capture()
+        );
+
+        TruckPositionUpdatedMessage sent = captor.getValue();
+        assertThat(sent.getTruckId()).isEqualTo(truckId.value().toString());
+        assertThat(sent.getLocation().getX()).isEqualTo(5);
+        assertThat(sent.getLocation().getY()).isEqualTo(3);
     }
 
     @Test

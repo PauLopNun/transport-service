@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TruckRepositoryAdapterIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("transport_test")
             .withUsername("test")
             .withPassword("test");

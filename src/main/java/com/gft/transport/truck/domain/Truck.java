@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class Truck {
 
     private final TruckId truckId;
@@ -24,7 +24,7 @@ public class Truck {
         return capacity - currentLoad;
     }
 
-    public boolean canAccept(int items) {
-        return items <= remainingCapacity();
+    public boolean canAccept(int itemCount) {
+        return itemCount <= remainingCapacity();
     }
 }

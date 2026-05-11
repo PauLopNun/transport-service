@@ -1,1 +1,0 @@
-package com.gft.transport.delivery.domain.event;
