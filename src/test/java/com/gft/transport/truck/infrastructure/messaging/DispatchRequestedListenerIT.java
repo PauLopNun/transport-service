@@ -60,6 +60,7 @@ class DispatchRequestedListenerIT {
         registry.add("spring.rabbitmq.port", rabbitmq::getAmqpPort);
         registry.add("spring.rabbitmq.username", rabbitmq::getAdminUsername);
         registry.add("spring.rabbitmq.password", rabbitmq::getAdminPassword);
+        registry.add("spring.rabbitmq.ssl.enabled", () -> "false");
     }
 
     @Autowired private RabbitTemplate rabbitTemplate;
