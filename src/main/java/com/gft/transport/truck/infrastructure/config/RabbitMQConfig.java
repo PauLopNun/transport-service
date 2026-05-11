@@ -14,12 +14,15 @@ public class RabbitMQConfig {
     public static final String TRUCKS_EXCHANGE                = "trucks.exchange";
     public static final String SHIPMENTS_EXCHANGE             = "shipments.exchange";
     public static final String SIMULATION_EXCHANGE            = "simulation.exchange";
+    public static final String WAREHOUSES_EXCHANGE            = "warehouses.exchange";
 
     public static final String SHIPMENT_REQUESTED_QUEUE       = "trucks.shipment.requested";
     public static final String TIME_ADVANCED_QUEUE            = "trucks.time.advanced";
+    public static final String WAREHOUSE_REGISTERED_QUEUE     = "trucks.warehouse.registered";
 
     public static final String SHIPMENT_REQUESTED_ROUTING_KEY = "shipment.requested.v1";
     public static final String TIME_ADVANCED_ROUTING_KEY      = "time.advanced.v1";
+    public static final String WAREHOUSE_REGISTERED_ROUTING_KEY = "warehouse.registered.v1";
 
     @Bean
     public TopicExchange trucksExchange() {
@@ -37,6 +40,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public TopicExchange warehousesExchange() {
+        return new TopicExchange(WAREHOUSES_EXCHANGE);
+    }
+
+    @Bean
     public Queue shipmentRequestedQueue() {
         return new Queue(SHIPMENT_REQUESTED_QUEUE);
     }
@@ -44,6 +52,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue timeAdvancedQueue() {
         return new Queue(TIME_ADVANCED_QUEUE);
+    }
+
+    @Bean
+    public Queue warehouseRegisteredQueue() {
+        return new Queue(WAREHOUSE_REGISTERED_QUEUE);
     }
 
     @Bean
@@ -58,6 +71,13 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(timeAdvancedQueue)
                 .to(simulationExchange)
                 .with(TIME_ADVANCED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding warehouseRegisteredBinding(Queue warehouseRegisteredQueue, TopicExchange warehousesExchange) {
+        return BindingBuilder.bind(warehouseRegisteredQueue)
+                .to(warehousesExchange)
+                .with(WAREHOUSE_REGISTERED_ROUTING_KEY);
     }
 
     @Bean
