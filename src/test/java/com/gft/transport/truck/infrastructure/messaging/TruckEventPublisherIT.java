@@ -34,7 +34,7 @@ class TruckEventPublisherIT {
     static RabbitMQContainer rabbitMQ = new RabbitMQContainer("rabbitmq:3-management");
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("transport_test")
             .withUsername("test")
             .withPassword("test");

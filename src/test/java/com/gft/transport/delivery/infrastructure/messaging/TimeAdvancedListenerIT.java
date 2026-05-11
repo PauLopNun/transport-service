@@ -49,7 +49,7 @@ import static org.awaitility.Awaitility.await;
 class TimeAdvancedListenerIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("transport_test")
             .withUsername("test")
             .withPassword("test");

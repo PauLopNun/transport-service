@@ -193,6 +193,96 @@ class AdvanceTrucksTest {
         assertThat(captor.getAllValues().get(0).getLocation()).isEqualTo(new Location(0, 1));
     }
 
+    @Test
+    void movesTruckInNegativeXDirectionWhenDestinationIsToTheLeft() {
+        Truck truck = inTransitTruck(new Location(3, 0));
+        Delivery delivery = deliveryFor(truck, new Location(0, 0));
+
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(1, 2);
+
+        ArgumentCaptor<Truck> captor = ArgumentCaptor.forClass(Truck.class);
+        verify(truckRepository, atLeastOnce()).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getLocation()).isEqualTo(new Location(2, 0));
+    }
+
+    @Test
+    void movesTruckInNegativeYDirectionWhenDestinationIsBelow() {
+        Truck truck = inTransitTruck(new Location(0, 3));
+        Delivery delivery = deliveryFor(truck, new Location(0, 0));
+
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(1, 2);
+
+        ArgumentCaptor<Truck> captor = ArgumentCaptor.forClass(Truck.class);
+        verify(truckRepository, atLeastOnce()).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getLocation()).isEqualTo(new Location(0, 2));
+    }
+
+    @Test
+    void stopsAdvancingWhenAllDeliveriesCompleteBeforeAllDaysElapse() {
+        Truck truck = inTransitTruck(new Location(0, 0));
+        Delivery delivery = deliveryFor(truck, new Location(1, 0));
+
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(3, 2);
+
+        ArgumentCaptor<TruckStatusChangedEvent> captor = ArgumentCaptor.forClass(TruckStatusChangedEvent.class);
+        verify(truckEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getNewStatus()).isEqualTo(TruckStatus.AVAILABLE);
+        assertThat(captor.getValue().getReason()).isEqualTo("RETURNED_TO_BASE");
+    }
+
+    @Test
+    void ignoresAlreadyCompletedDeliveriesWhenAdvancing() {
+        Truck truck = inTransitTruck(new Location(0, 0));
+        Delivery alreadyCompleted = Delivery.builder()
+                .deliveryId(truck.getDeliveryIds().get(0))
+                .shipmentId(UUID.randomUUID())
+                .truckId(truck.getTruckId())
+                .origin(new Location(0, 0))
+                .destination(new Location(3, 0))
+                .items(List.of(new DeliveryItem("wood", 3)))
+                .assignedAt(1)
+                .completedAt(1)
+                .build();
+
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(alreadyCompleted));
+
+        advanceTrucks.execute(1, 2);
+
+        verify(truckRepository, never()).save(any());
+        verifyNoInteractions(truckEventPublisher, deliveryEventPublisher);
+    }
+
+    @Test
+    void doesNotMoveInTransitTruckWithNoPendingDeliveries() {
+        Truck truckWithAllDeliveriesCompleted = Truck.builder()
+                .truckId(TruckId.generate())
+                .name("Truck")
+                .location(new Location(0, 0))
+                .status(TruckStatus.IN_TRANSIT)
+                .capacity(10)
+                .currentLoad(0)
+                .deliveryIds(List.of())
+                .build();
+
+        when(truckRepository.findAll()).thenReturn(List.of(truckWithAllDeliveriesCompleted));
+        when(deliveryRepository.findByTruckId(truckWithAllDeliveriesCompleted.getTruckId())).thenReturn(List.of());
+
+        advanceTrucks.execute(1, 2);
+
+        verify(truckRepository, never()).save(any());
+        verifyNoInteractions(truckEventPublisher, deliveryEventPublisher);
+    }
+
     private Truck inTransitTruck(Location location) {
         return Truck.builder()
                 .truckId(TruckId.generate())
