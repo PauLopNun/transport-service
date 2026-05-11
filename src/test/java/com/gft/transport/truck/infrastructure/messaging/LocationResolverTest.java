@@ -11,10 +11,12 @@ class LocationResolverTest {
     private final LocationResolver resolver = new LocationResolver();
 
     @Test
-    void resolvesKnownWarehouseId() {
-        Location location = resolver.resolve("warehouse-north-01");
+    void registersAndResolvesWarehouseLocation() {
+        resolver.register("warehouse-north-01", new Location(5, 10));
 
-        assertThat(location).isNotNull();
+        Location result = resolver.resolve("warehouse-north-01");
+
+        assertThat(result).isEqualTo(new Location(5, 10));
     }
 
     @Test
