@@ -1,4 +1,7 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: transport-service
 
@@ -28,7 +31,7 @@ spring:
     host: ${RABBITMQ_HOST:seal.lmq.cloudamqp.com}
     port: ${RABBITMQ_PORT:5671}
     username: ${RABBITMQ_USERNAME:ibvztclz}
-    password: ${RABBITMQ_PASSWORD}
+    password: ${RABBITMQ_PASSWORD:}
     virtual-host: ${RABBITMQ_VIRTUAL_HOST:ibvztclz}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
