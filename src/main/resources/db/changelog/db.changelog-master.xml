@@ -97,17 +97,4 @@
                                  constraintName="fk_truck_deliveries_truck"/>
     </changeSet>
 
-    <changeSet id="6" author="ivancarm">
-        <dropColumn tableName="delivery_items" columnName="material_type"/>
-        <addColumn tableName="delivery_items">
-            <column name="product_id" type="UUID">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-    </changeSet>
-
-    <changeSet id="7" author="ivancarm">
-        <modifyDataType tableName="delivery_items" columnName="product_id" newDataType="VARCHAR(255)"/>
-    </changeSet>
-
 </databaseChangeLog>

@@ -15,23 +15,22 @@ class ShipmentRequestedMessageTest {
     @Test
     void deserializesAllFieldsFromJson() throws Exception {
         UUID shipmentId = UUID.randomUUID();
-        UUID productId = UUID.randomUUID();
         String json = """
                 {
                     "shipmentId": "%s",
                     "originId": "warehouse-north-01",
                     "destinationId": "warehouse-south-03",
-                    "items": [{"productId": "%s", "quantity": 6}],
+                    "items": [{"materialType": "wood", "quantity": 6}],
                     "requestedAt": 3
                 }
-                """.formatted(shipmentId, productId);
+                """.formatted(shipmentId);
 
         ShipmentRequestedMessage message = objectMapper.readValue(json, ShipmentRequestedMessage.class);
 
         assertThat(message.shipmentId()).isEqualTo(shipmentId);
         assertThat(message.originId()).isEqualTo("warehouse-north-01");
         assertThat(message.destinationId()).isEqualTo("warehouse-south-03");
-        assertThat(message.items()).containsExactly(new DeliveryItem(productId.toString(), 6));
+        assertThat(message.items()).containsExactly(new DeliveryItem("wood", 6));
         assertThat(message.requestedAt()).isEqualTo(3);
     }
 
