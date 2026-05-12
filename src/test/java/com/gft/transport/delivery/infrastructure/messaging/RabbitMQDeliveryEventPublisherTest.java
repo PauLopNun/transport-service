@@ -32,10 +32,11 @@ class RabbitMQDeliveryEventPublisherTest {
 
     @Test
     void publishesDeliveryCompletedEventToCorrectExchangeAndRoutingKey() {
+        UUID productId = UUID.randomUUID();
         DeliveryCompletedEvent event = new DeliveryCompletedEvent(
                 UUID.randomUUID(),
                 new TruckId(UUID.randomUUID()),
-                List.of(new DeliveryItem("wood", 6)),
+                List.of(new DeliveryItem(productId, 6)),
                 new Location(8, 2),
                 5
         );
@@ -54,7 +55,7 @@ class RabbitMQDeliveryEventPublisherTest {
         assertThat(message.getTruckId()).isEqualTo(event.getTruckId().value().toString());
         assertThat(message.getCompletedAt()).isEqualTo(5);
         assertThat(message.getItems()).hasSize(1);
-        assertThat(message.getItems().get(0).getMaterialType()).isEqualTo("wood");
+        assertThat(message.getItems().get(0).getProductId()).isEqualTo(productId);
         assertThat(message.getLocation().getX()).isEqualTo(8);
         assertThat(message.getLocation().getY()).isEqualTo(2);
     }

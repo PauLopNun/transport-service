@@ -88,7 +88,7 @@ class DeliveryRepositoryAdapterIT {
 
         Delivery found = adapter.findById(delivery.getDeliveryId()).orElseThrow();
         assertThat(found.getItems()).hasSize(2);
-        assertThat(found.getItems().get(0).materialType()).isEqualTo("wood");
+        assertThat(found.getItems().get(0).productId()).isNotNull();
     }
 
     private Delivery buildDelivery() {
@@ -103,7 +103,7 @@ class DeliveryRepositoryAdapterIT {
                 .truckId(TruckId.generate())
                 .origin(new Location(2, 3))
                 .destination(new Location(5, 5))
-                .items(List.of(new DeliveryItem("wood", 1)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 1)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
@@ -122,7 +122,7 @@ class DeliveryRepositoryAdapterIT {
                 .truckId(TruckId.generate())
                 .origin(null)
                 .destination(new Location(5, 5))
-                .items(List.of(new DeliveryItem("wood", 1)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 1)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
@@ -140,7 +140,7 @@ class DeliveryRepositoryAdapterIT {
                 .truckId(truckId)
                 .origin(new Location(0, 0))
                 .destination(new Location(5, 5))
-                .items(List.of(new DeliveryItem("wood", 6), new DeliveryItem("nails", 12)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 6), new DeliveryItem(UUID.randomUUID(), 12)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();

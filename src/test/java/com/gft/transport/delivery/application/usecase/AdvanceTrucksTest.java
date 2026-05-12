@@ -135,7 +135,7 @@ class AdvanceTrucksTest {
                 .truckId(truckId)
                 .origin(new Location(0, 0))
                 .destination(new Location(1, 0))
-                .items(List.of(new DeliveryItem("wood", 2)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 2)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
@@ -146,7 +146,7 @@ class AdvanceTrucksTest {
                 .truckId(truckId)
                 .origin(new Location(0, 0))
                 .destination(new Location(3, 0))
-                .items(List.of(new DeliveryItem("nails", 2)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 2)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
@@ -248,7 +248,7 @@ class AdvanceTrucksTest {
                 .truckId(truck.getTruckId())
                 .origin(new Location(0, 0))
                 .destination(new Location(3, 0))
-                .items(List.of(new DeliveryItem("wood", 3)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 3)))
                 .assignedAt(1)
                 .completedAt(1)
                 .build();
@@ -314,7 +314,7 @@ class AdvanceTrucksTest {
                 .truckId(truck.getTruckId())
                 .origin(new Location(0, 0))
                 .destination(destination)
-                .items(List.of(new DeliveryItem("wood", 3)))
+                .items(List.of(new DeliveryItem(UUID.randomUUID(), 3)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
