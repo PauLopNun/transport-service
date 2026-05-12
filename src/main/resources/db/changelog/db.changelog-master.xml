@@ -106,4 +106,8 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="7" author="ivancarm">
+        <modifyDataType tableName="delivery_items" columnName="product_id" newDataType="VARCHAR(255)"/>
+    </changeSet>
+
 </databaseChangeLog>

@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
-import java.util.UUID;
 
 @Value
 @Builder
@@ -19,7 +18,7 @@ public class DeliveryCompletedMessage {
 
     @Value
     public static class ItemDto {
-        UUID productId;
+        String productId;
         int quantity;
     }
 
