@@ -44,6 +44,7 @@ class DispatchRequestedListenerTest {
     @Test
     void dispatchesTruckWhenValidMessageReceived() {
         UUID shipmentId = UUID.randomUUID();
+        String productId = UUID.randomUUID().toString();
         Location origin = new Location(0, 10);
         Location destination = new Location(10, 0);
 
@@ -55,10 +56,10 @@ class DispatchRequestedListenerTest {
                     "shipmentId": "%s",
                     "originId": "warehouse-north-01",
                     "destinationId": "warehouse-south-03",
-                    "items": [{"materialType": "wood", "quantity": 6}],
+                    "items": [{"productId": "%s", "quantity": 6}],
                     "requestedAt": 3
                 }
-                """.formatted(shipmentId));
+                """.formatted(shipmentId, productId));
 
         listener.onMessage(message);
 
@@ -69,7 +70,7 @@ class DispatchRequestedListenerTest {
         assertThat(command.shipmentId()).isEqualTo(shipmentId);
         assertThat(command.origin()).isEqualTo(origin);
         assertThat(command.destination()).isEqualTo(destination);
-        assertThat(command.items()).containsExactly(new DeliveryItem("wood", 6));
+        assertThat(command.items()).containsExactly(new DeliveryItem(productId, 6));
         assertThat(command.requestedAt()).isEqualTo(3);
     }
 
@@ -85,10 +86,10 @@ class DispatchRequestedListenerTest {
                     "shipmentId": "%s",
                     "originId": "warehouse-north-01",
                     "destinationId": "warehouse-south-03",
-                    "items": [{"materialType": "wood", "quantity": 6}],
+                    "items": [{"productId": "%s", "quantity": 6}],
                     "requestedAt": 3
                 }
-                """.formatted(shipmentId));
+                """.formatted(shipmentId, UUID.randomUUID()));
 
         assertThatCode(() -> listener.onMessage(message)).doesNotThrowAnyException();
     }
@@ -107,6 +108,7 @@ class DispatchRequestedListenerTest {
     @Test
     void dispatchesTruckWhenMessageIsDoubleEncoded() throws Exception {
         UUID shipmentId = UUID.randomUUID();
+        String productId = UUID.randomUUID().toString();
         Location origin = new Location(0, 10);
         Location destination = new Location(10, 0);
 
@@ -118,10 +120,10 @@ class DispatchRequestedListenerTest {
                     "shipmentId": "%s",
                     "originId": "warehouse-north-01",
                     "destinationId": "warehouse-south-03",
-                    "items": [{"materialType": "wood", "quantity": 6}],
+                    "items": [{"productId": "%s", "quantity": 6}],
                     "requestedAt": 3
                 }
-                """.formatted(shipmentId);
+                """.formatted(shipmentId, productId);
         Message message = buildMessage(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(innerJson));
 
         listener.onMessage(message);
@@ -133,7 +135,7 @@ class DispatchRequestedListenerTest {
         assertThat(command.shipmentId()).isEqualTo(shipmentId);
         assertThat(command.origin()).isEqualTo(origin);
         assertThat(command.destination()).isEqualTo(destination);
-        assertThat(command.items()).containsExactly(new DeliveryItem("wood", 6));
+        assertThat(command.items()).containsExactly(new DeliveryItem(productId, 6));
         assertThat(command.requestedAt()).isEqualTo(3);
     }
 
