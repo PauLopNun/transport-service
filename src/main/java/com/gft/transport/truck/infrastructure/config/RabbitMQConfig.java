@@ -3,8 +3,11 @@ package com.gft.transport.truck.infrastructure.config;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
+import org.springframework.amqp.support.converter.Jackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,7 +16,7 @@ public class RabbitMQConfig {
 
     public static final String TRUCKS_EXCHANGE                = "trucks.exchange";
     public static final String SHIPMENTS_EXCHANGE             = "shipments.exchange";
-    public static final String SIMULATION_EXCHANGE            = "simulation.events";
+    public static final String SIMULATION_EXCHANGE            = "ms-time.exchange";
     public static final String WAREHOUSES_EXCHANGE            = "warehouses.exchange";
 
     public static final String SHIPMENT_REQUESTED_QUEUE       = "trucks.shipment.requested";
@@ -88,13 +91,21 @@ public class RabbitMQConfig {
 
     @Bean
     public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+        // Used by listener containers. Our listeners handle JSON deserialization
+        // manually via ObjectMapper, so no type-header resolution needed here.
+        return new SimpleMessageConverter();
     }
 
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(new Jackson2JsonMessageConverter());
+        // Publishing converter: serialize to JSON without __TypeId__ header
+        // so cross-service consumers (map, reporting) can deserialize with their own classes.
+        Jackson2JsonMessageConverter publishConverter = new Jackson2JsonMessageConverter();
+        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
+        typeMapper.setTypePrecedence(Jackson2JavaTypeMapper.TypePrecedence.INFERRED);
+        publishConverter.setJavaTypeMapper(typeMapper);
+        template.setMessageConverter(publishConverter);
         return template;
     }
 }

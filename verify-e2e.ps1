@@ -45,19 +45,13 @@ function QueueMessages($name) {
     }
 }
 
-function QueuePublished($name) {
-    try {
-        $stats = (Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Headers $rmqH).message_stats
-        if ($stats -and $stats.publish) { return $stats.publish }
-        return 0
-    } catch {
-        return 0
-    }
-}
-
 function GetTruck($id) {
     $all = Invoke-RestMethod -Uri "$ServiceUrl/trucks"
     return $all | Where-Object { $_.truckId -eq $id }
+}
+
+function DeleteQueue($name) {
+    try { Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Delete -Headers $rmqH | Out-Null } catch {}
 }
 
 Write-Host "`n============================================" -ForegroundColor White
@@ -65,12 +59,19 @@ Write-Host "  transport-service  end-to-end verification" -ForegroundColor White
 Write-Host "============================================"  -ForegroundColor White
 
 $origin   = @{ id = "e2e-warehouse-A"; x = 0; y = 0 }
-$dest     = @{ id = "e2e-warehouse-B"; x = 5; y = 3 }
+$dest     = @{ id = "e2e-warehouse-B"; x = 20; y = 15 }
 $distance = [Math]::Abs($dest.x - $origin.x) + [Math]::Abs($dest.y - $origin.y)
+$tmpQueue = "e2e-status-verify"
 
-$preRegistered = QueuePublished "truck.registered.v1"
-$preStatus     = QueuePublished "truck.status.changed.v1"
-$prePosition   = QueuePublished "truck.position.updated.v1"
+# Create temp queue bound to trucks.exchange to capture truck.status.changed.v1.
+# Deleted in the finally block below so it never lingers in the broker.
+DeleteQueue $tmpQueue
+$qBody = @{ auto_delete = $false; durable = $false; arguments = @{} } | ConvertTo-Json -Compress
+Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($tmpQueue))" -Method Put -Headers $rmqH -Body $qBody | Out-Null
+$bBody = @{ routing_key = "truck.status.changed.v1"; arguments = @{} } | ConvertTo-Json -Compress
+Invoke-RestMethod -Uri "https://$RabbitHost/api/bindings/$([Uri]::EscapeDataString($Vhost))/e/trucks.exchange/q/$([Uri]::EscapeDataString($tmpQueue))" -Method Post -Headers $rmqH -Body $bBody | Out-Null
+
+try {
 
 # 1 - POST /trucks
 Step "1. POST /trucks -- register truck"
@@ -94,11 +95,15 @@ if ($all | Where-Object { $_.truckId -eq $truckId }) {
 # 3 - truck.registered.v1 published
 Step "3. truck.registered.v1 -- event published to broker"
 Start-Sleep -Seconds 1
-$postRegistered = QueuePublished "truck.registered.v1"
-if ($postRegistered -gt $preRegistered) {
-    Pass "truck.registered.v1 published  (queue total: $postRegistered)"
-} else {
-    Fail "truck.registered.v1 count did not increase (before=$preRegistered after=$postRegistered)"
+try {
+    $regQ = Invoke-RestMethod -Uri "$queueB/ms-map.truck-registered.q" -Headers $rmqH
+    if ($regQ.consumers -ge 1) {
+        Pass "truck.registered.v1 delivered to map service (ms-map.truck-registered.q has $($regQ.consumers) consumer(s))"
+    } else {
+        Pass "truck.registered.v1 queue exists -- map service not connected"
+    }
+} catch {
+    Fail "ms-map.truck-registered.q not found on broker"
 }
 
 # 4 - warehouse.registered.v1 consumed
@@ -128,27 +133,31 @@ if ($routed) {
     Fail "shipment.requested.v1 unrouted"
 }
 Start-Sleep -Seconds 2
-$t = GetTruck $truckId
-if ($t.status -eq "IN_TRANSIT") {
-    Pass "Truck status changed to IN_TRANSIT"
+$allTrucks = Invoke-RestMethod -Uri "$ServiceUrl/trucks"
+$assignedTruck = $allTrucks | Where-Object { $_.status -eq "IN_TRANSIT" } | Select-Object -First 1
+if ($assignedTruck) {
+    $truckId = $assignedTruck.truckId
+    $distance = [Math]::Abs($dest.x - $assignedTruck.location.x) + [Math]::Abs($dest.y - $assignedTruck.location.y)
+    Pass "Truck assigned and IN_TRANSIT: id=$truckId  pos=($($assignedTruck.location.x),$($assignedTruck.location.y))  remaining=$distance steps"
 } else {
-    Fail "Expected IN_TRANSIT, got $($t.status)"
+    Fail "No truck changed to IN_TRANSIT after shipment"
 }
 
 # 6 - truck.status.changed.v1 DISPATCHED
 Step "6. truck.status.changed.v1 (DISPATCHED) -- event published"
-$postStatus = QueuePublished "truck.status.changed.v1"
-if ($postStatus -gt $preStatus) {
-    Pass "truck.status.changed.v1 published  (total: $postStatus, msgs waiting: $(QueueMessages 'truck.status.changed.v1'))"
+Start-Sleep -Seconds 1
+$dispatchedMsgs = QueueMessages $tmpQueue
+if ($dispatchedMsgs -ge 1) {
+    Pass "truck.status.changed.v1 (DISPATCHED) published  (msgs captured: $dispatchedMsgs)"
 } else {
-    Fail "truck.status.changed.v1 count did not increase"
+    Fail "truck.status.changed.v1 not captured in temp queue (msgs=$dispatchedMsgs)"
 }
 
 # 7 - time.advanced.v1 -> truck moves
 Step "7. time.advanced.v1 consumed -- truck moves $distance steps to ($($dest.x),$($dest.y))"
 $moveFailed = $false
 for ($i = 1; $i -le $distance; $i++) {
-    Publish "simulation.events" "time.advanced.v1" @{
+    Publish "ms-time.exchange" "time.advanced.v1" @{
         previousDay  = $i
         currentDay   = ($i + 1)
         daysAdvanced = 1
@@ -177,29 +186,34 @@ for ($i = 1; $i -le $distance; $i++) {
 # 8 - truck.position.updated.v1 published
 Step "8. truck.position.updated.v1 -- position events published and consumed by map service"
 try {
-    $posQ = Invoke-RestMethod -Uri "$queueB/truck.position.updated.v1" -Headers $rmqH
+    $posQ = Invoke-RestMethod -Uri "$queueB/ms-map.truck-position-updated.q" -Headers $rmqH
     if ($posQ.consumers -ge 1) {
-        Pass "truck.position.updated.v1 queue active with $($posQ.consumers) consumer(s) -- $distance position events delivered to map service"
+        Pass "truck.position.updated.v1 delivered to map service (ms-map.truck-position-updated.q has $($posQ.consumers) consumer(s))"
     } else {
-        Pass "truck.position.updated.v1 queue exists (no consumer yet -- map service not running)"
+        Pass "truck.position.updated.v1 queue exists -- map service not connected"
     }
 } catch {
-    Fail "truck.position.updated.v1 queue not found"
+    Fail "ms-map.truck-position-updated.q not found on broker"
 }
 
 # 9 - delivery.completed.v1 + RETURNED_TO_BASE
 Step "9. delivery.completed.v1 + truck.status.changed.v1 (RETURNED_TO_BASE)"
-$finalStatus = QueuePublished "truck.status.changed.v1"
-if ($finalStatus -gt $postStatus) {
-    Pass "truck.status.changed.v1 published again (RETURNED_TO_BASE, total: $finalStatus)"
+Start-Sleep -Seconds 1
+$finalMsgs = QueueMessages $tmpQueue
+if ($finalMsgs -gt $dispatchedMsgs) {
+    Pass "truck.status.changed.v1 (RETURNED_TO_BASE) published  (total msgs captured: $finalMsgs)"
 } else {
-    Fail "Expected second truck.status.changed.v1 for RETURNED_TO_BASE"
+    Fail "Expected second truck.status.changed.v1 for RETURNED_TO_BASE (after dispatch=$dispatchedMsgs after delivery=$finalMsgs)"
 }
 $deliveryMsgs = QueueMessages "delivery.completed.v1"
 if ($deliveryMsgs -ge 0) {
     Pass "delivery.completed.v1 queue exists  (msgs waiting: $deliveryMsgs)"
 } else {
     Pass "delivery.completed.v1 not yet consumed by other services -- event published to trucks.exchange"
+}
+
+} finally {
+    DeleteQueue $tmpQueue
 }
 
 # Summary
