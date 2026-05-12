@@ -154,7 +154,7 @@ if ($dispatchedMsgs -ge 1) {
 Step "7. time.advanced.v1 consumed -- truck moves $distance steps to ($($dest.x),$($dest.y))"
 $moveFailed = $false
 for ($i = 1; $i -le $distance; $i++) {
-    Publish "simulation.events" "time.advanced.v1" @{
+    Publish "ms-time.exchange" "time.advanced.v1" @{
         previousDay  = $i
         currentDay   = ($i + 1)
         daysAdvanced = 1
