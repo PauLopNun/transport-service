@@ -108,7 +108,7 @@ class TransportServiceEndToEnd {
         awaitWarehousesRegistered("warehouse-origin", "warehouse-dest");
 
         UUID shipmentId = UUID.randomUUID();
-        publishShipmentRequested(shipmentId, "warehouse-origin", "warehouse-dest", "wood", 4, 1);
+        publishShipmentRequested(shipmentId, "warehouse-origin", "warehouse-dest", UUID.randomUUID(), 4, 1);
         awaitTruckDispatched(truckId, shipmentId);
         assertTruckStatusEventPublished("DISPATCHED");
 
@@ -199,11 +199,11 @@ class TransportServiceEndToEnd {
     }
 
     private void publishShipmentRequested(UUID shipmentId, String originId, String destinationId,
-                                          String materialType, int quantity, int requestedAt) {
+                                          UUID productId, int quantity, int requestedAt) {
         String json = String.format(
                 "{\"shipmentId\":\"%s\",\"originId\":\"%s\",\"destinationId\":\"%s\"," +
-                "\"items\":[{\"materialType\":\"%s\",\"quantity\":%d}],\"requestedAt\":%d}",
-                shipmentId, originId, destinationId, materialType, quantity, requestedAt
+                "\"items\":[{\"productId\":\"%s\",\"quantity\":%d}],\"requestedAt\":%d}",
+                shipmentId, originId, destinationId, productId, quantity, requestedAt
         );
         rabbitTemplate.send(
                 RabbitMQConfig.SHIPMENTS_EXCHANGE,
