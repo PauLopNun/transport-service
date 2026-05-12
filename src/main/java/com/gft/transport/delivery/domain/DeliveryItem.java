@@ -1,3 +1,5 @@
 package com.gft.transport.delivery.domain;
 
-public record DeliveryItem(String materialType, int quantity) {}
+import java.util.UUID;
+
+public record DeliveryItem(UUID productId, int quantity) {}
