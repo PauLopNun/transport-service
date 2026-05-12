@@ -18,7 +18,7 @@ public class DeliveryCompletedMessage {
 
     @Value
     public static class ItemDto {
-        String productId;
+        String materialType;
         int quantity;
     }
 
@@ -33,7 +33,7 @@ public class DeliveryCompletedMessage {
                 .shipmentId(event.getShipmentId().toString())
                 .truckId(event.getTruckId().value().toString())
                 .items(event.getItems().stream()
-                        .map(item -> new ItemDto(item.productId(), item.quantity()))
+                        .map(item -> new ItemDto(item.materialType(), item.quantity()))
                         .toList())
                 .location(new LocationDto(event.getLocation().x(), event.getLocation().y()))
                 .completedAt(event.getCompletedAt())

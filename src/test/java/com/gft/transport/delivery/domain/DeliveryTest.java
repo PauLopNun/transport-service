@@ -18,7 +18,7 @@ class DeliveryTest {
                 .truckId(new TruckId(UUID.randomUUID()))
                 .origin(new Location(0, 0))
                 .destination(new Location(5, 10))
-                .items(List.of(new DeliveryItem(UUID.randomUUID().toString(), 3)))
+                .items(List.of(new DeliveryItem("PALLETS", 3)))
                 .assignedAt(1)
                 .completedAt(completedAt)
                 .build();

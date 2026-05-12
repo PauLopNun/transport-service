@@ -18,7 +18,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -89,7 +88,7 @@ class DeliveryRepositoryAdapterIT {
 
         Delivery found = adapter.findById(delivery.getDeliveryId()).orElseThrow();
         assertThat(found.getItems()).hasSize(2);
-        assertThat(found.getItems().get(0).productId()).isNotNull();
+        assertThat(found.getItems().get(0).materialType()).isEqualTo("wood");
     }
 
     private Delivery buildDelivery() {
@@ -104,7 +103,7 @@ class DeliveryRepositoryAdapterIT {
                 .truckId(TruckId.generate())
                 .origin(new Location(2, 3))
                 .destination(new Location(5, 5))
-                .items(List.of(new DeliveryItem(UUID.randomUUID().toString(), 1)))
+                .items(List.of(new DeliveryItem("wood", 1)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
@@ -123,7 +122,7 @@ class DeliveryRepositoryAdapterIT {
                 .truckId(TruckId.generate())
                 .origin(null)
                 .destination(new Location(5, 5))
-                .items(List.of(new DeliveryItem(UUID.randomUUID().toString(), 1)))
+                .items(List.of(new DeliveryItem("wood", 1)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();
@@ -141,7 +140,7 @@ class DeliveryRepositoryAdapterIT {
                 .truckId(truckId)
                 .origin(new Location(0, 0))
                 .destination(new Location(5, 5))
-                .items(List.of(new DeliveryItem(UUID.randomUUID().toString(), 6), new DeliveryItem(UUID.randomUUID().toString(), 12)))
+                .items(List.of(new DeliveryItem("wood", 6), new DeliveryItem("nails", 12)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build();

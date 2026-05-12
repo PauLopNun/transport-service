@@ -188,7 +188,7 @@ class AssignTruckTest {
                 UUID.randomUUID(),
                 origin,
                 destination,
-                List.of(new DeliveryItem(UUID.randomUUID().toString(), quantity)),
+                List.of(new DeliveryItem("wood", quantity)),
                 1
         );
     }
