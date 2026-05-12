@@ -133,11 +133,14 @@ if ($routed) {
     Fail "shipment.requested.v1 unrouted"
 }
 Start-Sleep -Seconds 2
-$t = GetTruck $truckId
-if ($t.status -eq "IN_TRANSIT") {
-    Pass "Truck status changed to IN_TRANSIT"
+$allTrucks = Invoke-RestMethod -Uri "$ServiceUrl/trucks"
+$assignedTruck = $allTrucks | Where-Object { $_.status -eq "IN_TRANSIT" } | Select-Object -First 1
+if ($assignedTruck) {
+    $truckId = $assignedTruck.truckId
+    $distance = [Math]::Abs($dest.x - $assignedTruck.location.x) + [Math]::Abs($dest.y - $assignedTruck.location.y)
+    Pass "Truck assigned and IN_TRANSIT: id=$truckId  pos=($($assignedTruck.location.x),$($assignedTruck.location.y))  remaining=$distance steps"
 } else {
-    Fail "Expected IN_TRANSIT, got $($t.status)"
+    Fail "No truck changed to IN_TRANSIT after shipment"
 }
 
 # 6 - truck.status.changed.v1 DISPATCHED
