@@ -212,7 +212,7 @@ class TimeAdvancedListenerIT {
                 .truckId(truckId)
                 .origin(new Location(0, 0))
                 .destination(new Location(2, 0))
-                .items(List.of(new DeliveryItem(UUID.randomUUID().toString(), 2)))
+                .items(List.of(new DeliveryItem("wood", 2)))
                 .assignedAt(1)
                 .completedAt(null)
                 .build());
