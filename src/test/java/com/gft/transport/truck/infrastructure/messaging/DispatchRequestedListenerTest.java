@@ -44,7 +44,7 @@ class DispatchRequestedListenerTest {
     @Test
     void dispatchesTruckWhenValidMessageReceived() {
         UUID shipmentId = UUID.randomUUID();
-        UUID productId = UUID.randomUUID();
+        String productId = UUID.randomUUID().toString();
         Location origin = new Location(0, 10);
         Location destination = new Location(10, 0);
 
@@ -114,7 +114,7 @@ class DispatchRequestedListenerTest {
         when(locationResolver.resolve("warehouse-north-01")).thenReturn(origin);
         when(locationResolver.resolve("warehouse-south-03")).thenReturn(destination);
 
-        UUID productId = UUID.randomUUID();
+        String productId = UUID.randomUUID().toString();
         String innerJson = """
                 {
                     "shipmentId": "%s",
