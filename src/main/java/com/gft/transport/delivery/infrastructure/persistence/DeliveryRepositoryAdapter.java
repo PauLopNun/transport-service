@@ -42,7 +42,7 @@ public class DeliveryRepositoryAdapter implements DeliveryRepository {
 
     private DeliveryEntity toEntity(Delivery delivery) {
         List<DeliveryItemEmbeddable> items = delivery.getItems().stream()
-                .map(i -> new DeliveryItemEmbeddable(i.materialType(), i.quantity()))
+                .map(i -> new DeliveryItemEmbeddable(i.productId(), i.quantity()))
                 .toList();
 
         Location origin = delivery.getOrigin();
@@ -62,7 +62,7 @@ public class DeliveryRepositoryAdapter implements DeliveryRepository {
 
     private Delivery toDomain(DeliveryEntity entity) {
         List<DeliveryItem> items = entity.getItems().stream()
-                .map(i -> new DeliveryItem(i.getMaterialType(), i.getQuantity()))
+                .map(i -> new DeliveryItem(i.getProductId(), i.getQuantity()))
                 .toList();
 
         Location origin = entity.getOriginX() != null

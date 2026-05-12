@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
+import java.util.UUID;
 
 @Value
 @Builder
@@ -18,7 +19,7 @@ public class DeliveryCompletedMessage {
 
     @Value
     public static class ItemDto {
-        String materialType;
+        UUID productId;
         int quantity;
     }
 
@@ -33,7 +34,7 @@ public class DeliveryCompletedMessage {
                 .shipmentId(event.getShipmentId().toString())
                 .truckId(event.getTruckId().value().toString())
                 .items(event.getItems().stream()
-                        .map(item -> new ItemDto(item.materialType(), item.quantity()))
+                        .map(item -> new ItemDto(item.productId(), item.quantity()))
                         .toList())
                 .location(new LocationDto(event.getLocation().x(), event.getLocation().y()))
                 .completedAt(event.getCompletedAt())
