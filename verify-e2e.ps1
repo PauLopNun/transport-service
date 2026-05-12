@@ -59,7 +59,7 @@ Write-Host "  transport-service  end-to-end verification" -ForegroundColor White
 Write-Host "============================================"  -ForegroundColor White
 
 $origin   = @{ id = "e2e-warehouse-A"; x = 0; y = 0 }
-$dest     = @{ id = "e2e-warehouse-B"; x = 5; y = 3 }
+$dest     = @{ id = "e2e-warehouse-B"; x = 20; y = 15 }
 $distance = [Math]::Abs($dest.x - $origin.x) + [Math]::Abs($dest.y - $origin.y)
 $tmpQueue = "e2e-status-verify"
 
