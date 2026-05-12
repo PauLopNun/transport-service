@@ -1,17 +1,19 @@
 # Seed RabbitMQ with test data to simulate the full dispatch flow.
-# Usage: .\seed-rabbitmq.ps1 [-Password "yourpass"] [-OriginX 0] [-OriginY 0] [-DestX 5] [-DestY 3]
+# Usage: .\seed-rabbitmq.ps1 -Password "pass" [-OriginX 0] [-OriginY 0] [-DestX 5] [-DestY 3] [-Quantity 6] [-Days 1]
+# Use -Days to advance time N ticks after assigning the shipment (8 ticks reaches (5,3) from (0,0)).
 
 param(
     [string]$RabbitHost = "seal.lmq.cloudamqp.com",
     [string]$Vhost      = "ibvztclz",
     [string]$User       = "ibvztclz",
     [string]$Password   = $env:RABBITMQ_PASSWORD,
-    [int]$OriginX     = 0,
-    [int]$OriginY     = 0,
-    [int]$DestX       = 5,
-    [int]$DestY       = 3,
-    [int]$Quantity    = 6,
-    [int]$Day         = 1
+    [int]$OriginX   = 0,
+    [int]$OriginY   = 0,
+    [int]$DestX     = 5,
+    [int]$DestY     = 3,
+    [int]$Quantity  = 6,
+    [int]$StartDay  = 1,
+    [int]$Days      = 1
 )
 
 if (-not $Password) {
@@ -19,9 +21,9 @@ if (-not $Password) {
     exit 1
 }
 
-$base     = "https://$RabbitHost/api/exchanges/$([Uri]::EscapeDataString($Vhost))"
-$creds    = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${User}:${Password}"))
-$headers  = @{ Authorization = "Basic $creds"; "Content-Type" = "application/json" }
+$base       = "https://$RabbitHost/api/exchanges/$([Uri]::EscapeDataString($Vhost))"
+$creds      = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${User}:${Password}"))
+$headers    = @{ Authorization = "Basic $creds"; "Content-Type" = "application/json" }
 $shipmentId = [Guid]::NewGuid().ToString()
 
 function Publish($exchange, $routingKey, $payload) {
@@ -57,14 +59,19 @@ Publish "shipments.exchange" "shipment.requested.v1" @{
     originId      = "warehouse-north-01"
     destinationId = "warehouse-south-03"
     items         = @(@{ materialType = "wood"; quantity = $Quantity })
-    requestedAt   = $Day
+    requestedAt   = $StartDay
 }
 
-Write-Host "`n=== 3. Advance time ==="
-Publish "simulation.events" "time.advanced.v1" @{
-    previousDay  = $Day - 1
-    currentDay   = $Day
-    daysAdvanced = 1
+Write-Host "`n=== 3. Advance time ($Days tick(s)) ==="
+for ($i = 0; $i -lt $Days; $i++) {
+    $current = $StartDay + $i + 1
+    Publish "simulation.events" "time.advanced.v1" @{
+        previousDay  = $current - 1
+        currentDay   = $current
+        daysAdvanced = 1
+    }
 }
 
-Write-Host "`nDone - check GET /trucks to verify truck moved to IN_TRANSIT and position updated."
+$distance = [Math]::Abs($DestX - $OriginX) + [Math]::Abs($DestY - $OriginY)
+Write-Host "`nDone - Manhattan distance to destination: $distance steps."
+Write-Host "Run with -Days $distance to complete the full delivery."
