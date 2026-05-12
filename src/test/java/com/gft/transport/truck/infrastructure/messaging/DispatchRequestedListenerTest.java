@@ -19,7 +19,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
+import com.gft.transport.truck.domain.exception.NoTruckAvailableException;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
@@ -68,6 +71,26 @@ class DispatchRequestedListenerTest {
         assertThat(command.destination()).isEqualTo(destination);
         assertThat(command.items()).containsExactly(new DeliveryItem("wood", 6));
         assertThat(command.requestedAt()).isEqualTo(3);
+    }
+
+    @Test
+    void discardsShipmentWhenNoTruckIsAvailable() {
+        UUID shipmentId = UUID.randomUUID();
+        when(locationResolver.resolve("warehouse-north-01")).thenReturn(new Location(0, 10));
+        when(locationResolver.resolve("warehouse-south-03")).thenReturn(new Location(10, 0));
+        doThrow(new NoTruckAvailableException()).when(assignTruck).execute(any());
+
+        Message message = buildMessage("""
+                {
+                    "shipmentId": "%s",
+                    "originId": "warehouse-north-01",
+                    "destinationId": "warehouse-south-03",
+                    "items": [{"materialType": "wood", "quantity": 6}],
+                    "requestedAt": 3
+                }
+                """.formatted(shipmentId));
+
+        assertThatCode(() -> listener.onMessage(message)).doesNotThrowAnyException();
     }
 
     @Test

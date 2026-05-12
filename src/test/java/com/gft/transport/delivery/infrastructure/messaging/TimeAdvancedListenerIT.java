@@ -105,6 +105,8 @@ class TimeAdvancedListenerIT {
         deliveryJpaRepository.deleteAll();
         truckJpaRepository.deleteAll();
         rabbitTemplate.execute(channel -> {
+            channel.exchangeDeclare(RabbitMQConfig.SIMULATION_EXCHANGE, "topic", true);
+            channel.queueBind(RabbitMQConfig.TIME_ADVANCED_QUEUE, RabbitMQConfig.SIMULATION_EXCHANGE, RabbitMQConfig.TIME_ADVANCED_ROUTING_KEY);
             channel.queuePurge(RabbitMQConfig.TIME_ADVANCED_QUEUE);
             return null;
         });

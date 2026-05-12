@@ -77,6 +77,10 @@ class DispatchRequestedListenerIT {
         deliveryJpaRepository.deleteAll();
         truckJpaRepository.deleteAll();
         rabbitTemplate.execute(channel -> {
+            channel.exchangeDeclare(RabbitMQConfig.SHIPMENTS_EXCHANGE, "topic", true);
+            channel.queueBind(RabbitMQConfig.SHIPMENT_REQUESTED_QUEUE, RabbitMQConfig.SHIPMENTS_EXCHANGE, RabbitMQConfig.SHIPMENT_REQUESTED_ROUTING_KEY);
+            channel.exchangeDeclare(RabbitMQConfig.WAREHOUSES_EXCHANGE, "topic", true);
+            channel.queueBind(RabbitMQConfig.WAREHOUSE_REGISTERED_QUEUE, RabbitMQConfig.WAREHOUSES_EXCHANGE, RabbitMQConfig.WAREHOUSE_REGISTERED_ROUTING_KEY);
             channel.queuePurge(RabbitMQConfig.SHIPMENT_REQUESTED_QUEUE);
             channel.queuePurge(RabbitMQConfig.WAREHOUSE_REGISTERED_QUEUE);
             return null;
