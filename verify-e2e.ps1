@@ -96,14 +96,14 @@ if ($all | Where-Object { $_.truckId -eq $truckId }) {
 Step "3. truck.registered.v1 -- event published to broker"
 Start-Sleep -Seconds 1
 try {
-    $regQ = Invoke-RestMethod -Uri "$queueB/truck.registered.v1" -Headers $rmqH
+    $regQ = Invoke-RestMethod -Uri "$queueB/ms-map.truck-registered.q" -Headers $rmqH
     if ($regQ.consumers -ge 1) {
-        Pass "truck.registered.v1 queue active with $($regQ.consumers) consumer(s) -- event delivered to map service"
+        Pass "truck.registered.v1 delivered to map service (ms-map.truck-registered.q has $($regQ.consumers) consumer(s))"
     } else {
-        Pass "truck.registered.v1 queue exists (no consumer yet -- map service not running)"
+        Pass "truck.registered.v1 queue exists -- map service not connected"
     }
 } catch {
-    Fail "truck.registered.v1 queue not found on broker"
+    Fail "ms-map.truck-registered.q not found on broker"
 }
 
 # 4 - warehouse.registered.v1 consumed
@@ -186,14 +186,14 @@ for ($i = 1; $i -le $distance; $i++) {
 # 8 - truck.position.updated.v1 published
 Step "8. truck.position.updated.v1 -- position events published and consumed by map service"
 try {
-    $posQ = Invoke-RestMethod -Uri "$queueB/truck.position.updated.v1" -Headers $rmqH
+    $posQ = Invoke-RestMethod -Uri "$queueB/ms-map.truck-position-updated.q" -Headers $rmqH
     if ($posQ.consumers -ge 1) {
-        Pass "truck.position.updated.v1 queue active with $($posQ.consumers) consumer(s) -- $distance position events delivered to map service"
+        Pass "truck.position.updated.v1 delivered to map service (ms-map.truck-position-updated.q has $($posQ.consumers) consumer(s))"
     } else {
-        Pass "truck.position.updated.v1 queue exists (no consumer yet -- map service not running)"
+        Pass "truck.position.updated.v1 queue exists -- map service not connected"
     }
 } catch {
-    Fail "truck.position.updated.v1 queue not found"
+    Fail "ms-map.truck-position-updated.q not found on broker"
 }
 
 # 9 - delivery.completed.v1 + RETURNED_TO_BASE
