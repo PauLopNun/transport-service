@@ -50,16 +50,6 @@ function GetTruck($id) {
     return $all | Where-Object { $_.truckId -eq $id }
 }
 
-function CreateTempQueue($name, $exchange, $routingKey) {
-    $body = @{ auto_delete = $true; durable = $false; arguments = @{} } | ConvertTo-Json -Compress
-    Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Put -Headers $rmqH -Body $body | Out-Null
-    $bind = @{ routing_key = $routingKey; arguments = @{} } | ConvertTo-Json -Compress
-    Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))/bindings" -Method Post -Headers $rmqH -Body $bind | Out-Null
-    # bindings endpoint needs exchange info - use the bindings API instead
-    $bindBody = @{ routing_key = $routingKey; arguments = @{} } | ConvertTo-Json -Compress
-    Invoke-RestMethod -Uri "https://$RabbitHost/api/bindings/$([Uri]::EscapeDataString($Vhost))/e/$([Uri]::EscapeDataString($exchange))/q/$([Uri]::EscapeDataString($name))" -Method Post -Headers $rmqH -Body $bindBody | Out-Null
-}
-
 function DeleteQueue($name) {
     try { Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Delete -Headers $rmqH | Out-Null } catch {}
 }
@@ -73,12 +63,15 @@ $dest     = @{ id = "e2e-warehouse-B"; x = 5; y = 3 }
 $distance = [Math]::Abs($dest.x - $origin.x) + [Math]::Abs($dest.y - $origin.y)
 $tmpQueue = "e2e-status-verify"
 
-# Create temp queue bound to trucks.exchange to capture truck.status.changed.v1
+# Create temp queue bound to trucks.exchange to capture truck.status.changed.v1.
+# Deleted in the finally block below so it never lingers in the broker.
 DeleteQueue $tmpQueue
 $qBody = @{ auto_delete = $false; durable = $false; arguments = @{} } | ConvertTo-Json -Compress
 Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($tmpQueue))" -Method Put -Headers $rmqH -Body $qBody | Out-Null
 $bBody = @{ routing_key = "truck.status.changed.v1"; arguments = @{} } | ConvertTo-Json -Compress
 Invoke-RestMethod -Uri "https://$RabbitHost/api/bindings/$([Uri]::EscapeDataString($Vhost))/e/trucks.exchange/q/$([Uri]::EscapeDataString($tmpQueue))" -Method Post -Headers $rmqH -Body $bBody | Out-Null
+
+try {
 
 # 1 - POST /trucks
 Step "1. POST /trucks -- register truck"
@@ -216,7 +209,9 @@ if ($deliveryMsgs -ge 0) {
     Pass "delivery.completed.v1 not yet consumed by other services -- event published to trucks.exchange"
 }
 
-DeleteQueue $tmpQueue
+} finally {
+    DeleteQueue $tmpQueue
+}
 
 # Summary
 $color = if ($failed -eq 0) { "Green" } else { "Red" }
