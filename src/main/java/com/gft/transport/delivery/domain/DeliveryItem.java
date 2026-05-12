@@ -1,3 +1,3 @@
 package com.gft.transport.delivery.domain;
 
-public record DeliveryItem(String productId, int quantity) {}
+public record DeliveryItem(String materialType, int quantity) {}
