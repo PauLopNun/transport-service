@@ -10,6 +10,7 @@ import com.gft.transport.truck.domain.TruckStatus;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.domain.exception.NoTruckAvailableException;
 import com.gft.transport.truck.domain.repository.TruckRepository;
+import com.gft.transport.truck.domain.service.DistanceCalculator;
 import com.gft.transport.truck.domain.service.OptimalTruckSelector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class AssignTruck {
     private final DeliveryRepository deliveryRepository;
     private final OptimalTruckSelector truckSelector;
     private final TruckEventPublisher eventPublisher;
+    private final DistanceCalculator distanceCalculator;
 
     public void execute(AssignTruckCommand command) {
         int totalItemCount = command.items().stream()

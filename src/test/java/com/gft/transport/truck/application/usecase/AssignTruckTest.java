@@ -1,5 +1,7 @@
 package com.gft.transport.truck.application.usecase;
 
+import com.gft.transport.delivery.domain.Delivery;
+import com.gft.transport.delivery.domain.DeliveryId;
 import com.gft.transport.delivery.domain.DeliveryItem;
 import com.gft.transport.delivery.domain.repository.DeliveryRepository;
 import com.gft.transport.truck.application.port.out.TruckEventPublisher;
@@ -18,6 +20,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.mockito.Mockito.lenient;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,7 +51,8 @@ class AssignTruckTest {
                 truckRepository,
                 deliveryRepository,
                 new OptimalTruckSelector(new DistanceCalculator()),
-                eventPublisher
+                eventPublisher,
+                new DistanceCalculator()
         );
     }
 
@@ -169,6 +174,60 @@ class AssignTruckTest {
 
         assertThatThrownBy(() -> assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 1)))
                 .isInstanceOf(com.gft.transport.truck.domain.exception.NoTruckAvailableException.class);
+    }
+
+    @Test
+    void assignsInTransitTruckWhoseRoutePassesThroughShipmentOrigin() {
+        TruckId truckId = TruckId.generate();
+        Truck inTransitTruck = inTransitTruck(truckId, new Location(2, 0));
+        lenient().when(deliveryRepository.findByTruckId(truckId))
+                .thenReturn(List.of(activeDelivery(truckId, new Location(5, 0))));
+
+        when(truckRepository.findAll()).thenReturn(List.of(inTransitTruck));
+
+        assignTruck.execute(command(new Location(3, 0), new Location(8, 8), 2));
+
+        ArgumentCaptor<TruckStatusChangedEvent> captor = ArgumentCaptor.forClass(TruckStatusChangedEvent.class);
+        verify(eventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getReason()).isEqualTo("LOAD_UPDATED");
+    }
+
+    @Test
+    void doesNotAssignInTransitTruckWhoseRouteDoesNotPassThroughShipmentOrigin() {
+        TruckId truckId = TruckId.generate();
+        Truck inTransitTruck = inTransitTruck(truckId, new Location(2, 0));
+
+        when(truckRepository.findAll()).thenReturn(List.of(inTransitTruck));
+        when(deliveryRepository.findByTruckId(truckId))
+                .thenReturn(List.of(activeDelivery(truckId, new Location(5, 0))));
+
+        assertThatThrownBy(() -> assignTruck.execute(command(new Location(3, 3), new Location(8, 8), 2)))
+                .isInstanceOf(NoTruckAvailableException.class);
+    }
+
+    private Truck inTransitTruck(TruckId truckId, Location location) {
+        return Truck.builder()
+                .truckId(truckId)
+                .name("Truck IN_TRANSIT")
+                .location(location)
+                .status(TruckStatus.IN_TRANSIT)
+                .capacity(10)
+                .currentLoad(3)
+                .deliveryIds(List.of(DeliveryId.generate()))
+                .build();
+    }
+
+    private Delivery activeDelivery(TruckId truckId, Location destination) {
+        return Delivery.builder()
+                .deliveryId(DeliveryId.generate())
+                .shipmentId(UUID.randomUUID())
+                .truckId(truckId)
+                .origin(new Location(0, 0))
+                .destination(destination)
+                .items(List.of())
+                .assignedAt(0)
+                .completedAt(null)
+                .build();
     }
 
     private Truck availableTruck(Location location) {
