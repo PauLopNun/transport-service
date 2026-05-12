@@ -113,7 +113,7 @@ class TimeAdvancedListenerIT {
     }
 
     @Test
-    void deserializesAllFieldsFromRubensFormat() throws Exception {
+    void deserializesAllFieldsFromMsSimulationFormat() throws Exception {
         String json = """
                 {"eventId":"abc","previousDay":1,"currentDay":3,"daysAdvanced":2,"occurredAt":"2026-05-11T10:00:00Z"}
                 """;

@@ -51,7 +51,7 @@ class TimeAdvancedListenerTest {
     }
 
     @Test
-    void deserializesAllFieldsFromRubensFormat() throws Exception {
+    void deserializesAllFieldsFromMsSimulationFormat() throws Exception {
         String json = "{\"previousDay\":1,\"currentDay\":3,\"daysAdvanced\":2}";
         TimeAdvancedMessage msg = new ObjectMapper().readValue(json, TimeAdvancedMessage.class);
 
