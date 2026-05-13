@@ -115,8 +115,9 @@ class AssignTruckTest {
 
     @Test
     void assignsToInTransitTruckWhenNoAvailableTruck() {
+        TruckId truckId = TruckId.generate();
         Truck inTransit = Truck.builder()
-                .truckId(TruckId.generate())
+                .truckId(truckId)
                 .name("Truck 01")
                 .location(new Location(0, 0))
                 .status(TruckStatus.IN_TRANSIT)
@@ -126,6 +127,8 @@ class AssignTruckTest {
                 .build();
 
         when(truckRepository.findAll()).thenReturn(List.of(inTransit));
+        when(deliveryRepository.findByTruckId(truckId))
+                .thenReturn(List.of(activeDelivery(truckId, new Location(5, 0))));
 
         assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 2));
 
@@ -142,13 +145,16 @@ class AssignTruckTest {
                 .location(new Location(0, 0)).status(TruckStatus.AVAILABLE)
                 .capacity(3).currentLoad(3).deliveryIds(List.of()).build();
 
+        TruckId inTransitTruckId = TruckId.generate();
         Truck inTransitWithCapacity = Truck.builder()
-                .truckId(TruckId.generate()).name("InTransit")
+                .truckId(inTransitTruckId).name("InTransit")
                 .location(new Location(1, 0)).status(TruckStatus.IN_TRANSIT)
                 .capacity(10).currentLoad(2)
                 .deliveryIds(List.of(com.gft.transport.delivery.domain.DeliveryId.generate())).build();
 
         when(truckRepository.findAll()).thenReturn(List.of(availableButFull, inTransitWithCapacity));
+        when(deliveryRepository.findByTruckId(inTransitTruckId))
+                .thenReturn(List.of(activeDelivery(inTransitTruckId, new Location(0, 5))));
 
         assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 5));
 
