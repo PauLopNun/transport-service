@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -79,7 +80,7 @@ public class AssignTruck {
                 .filter(truck -> truck.getStatus() == TruckStatus.IN_TRANSIT)
                 .filter(truck -> truck.canAccept(requiredItemCount))
                 .filter(truck -> isTruckRoutePassingThrough(truck, shipmentOrigin))
-                .findFirst()
+                .min(Comparator.comparingInt(truck -> distanceCalculator.calculate(truck.getLocation(), shipmentOrigin)))
                 .orElseThrow(NoTruckAvailableException::new);
     }
 
