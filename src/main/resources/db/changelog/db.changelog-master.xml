@@ -97,4 +97,8 @@
                                  constraintName="fk_truck_deliveries_truck"/>
     </changeSet>
 
+    <changeSet id="6" author="ivancarm">
+        <renameColumn tableName="delivery_items" oldColumnName="material_type" newColumnName="product_id" columnDataType="VARCHAR(255)"/>
+    </changeSet>
+
 </databaseChangeLog>
