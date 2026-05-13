@@ -212,6 +212,26 @@ class AssignTruckTest {
     }
 
     @Test
+    void selectsNearestInTransitTruckWhenMultipleCandidatesExist() {
+        TruckId nearTruckId = TruckId.generate();
+        TruckId farTruckId = TruckId.generate();
+        Truck nearTruck = inTransitTruck(nearTruckId, new Location(2, 0));
+        Truck farTruck = inTransitTruck(farTruckId, new Location(0, 0));
+
+        when(truckRepository.findAll()).thenReturn(List.of(farTruck, nearTruck));
+        when(deliveryRepository.findByTruckId(nearTruckId))
+                .thenReturn(List.of(activeDelivery(nearTruckId, new Location(5, 0))));
+        when(deliveryRepository.findByTruckId(farTruckId))
+                .thenReturn(List.of(activeDelivery(farTruckId, new Location(5, 0))));
+
+        assignTruck.execute(command(new Location(3, 0), new Location(8, 8), 2));
+
+        ArgumentCaptor<TruckStatusChangedEvent> captor = ArgumentCaptor.forClass(TruckStatusChangedEvent.class);
+        verify(eventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getTruckId()).isEqualTo(nearTruckId);
+    }
+
+    @Test
     void doesNotAssignInTransitTruckWhoseRouteDoesNotPassThroughShipmentOrigin() {
         TruckId truckId = TruckId.generate();
         Truck inTransitTruck = inTransitTruck(truckId, new Location(2, 0));
