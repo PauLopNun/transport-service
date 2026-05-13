@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DeliveryItemEmbeddable {
-    @Column(name = "material_type")
-    private String materialType;
+    @Column(name = "product_id")
+    private String productId;
 
     private int quantity;
 }

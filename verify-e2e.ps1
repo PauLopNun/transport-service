@@ -124,7 +124,7 @@ $routed = Publish "shipments.exchange" "shipment.requested.v1" @{
     shipmentId    = $shipmentId
     originId      = $origin.id
     destinationId = $dest.id
-    items         = @(@{ materialType = "wood"; quantity = 6 })
+    items         = @(@{ productId = [Guid]::NewGuid().ToString(); quantity = 6 })
     requestedAt   = 1
 }
 if ($routed) {
