@@ -5,6 +5,7 @@ import com.gft.transport.delivery.domain.DeliveryId;
 import com.gft.transport.delivery.domain.DeliveryItem;
 import com.gft.transport.delivery.domain.repository.DeliveryRepository;
 import com.gft.transport.truck.application.port.out.TruckEventPublisher;
+import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckStatus;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
@@ -40,7 +41,7 @@ public class AssignTruck {
         try {
             selectedTruck = truckSelector.select(allTrucks, command.origin(), totalItemCount);
         } catch (NoTruckAvailableException e) {
-            selectedTruck = findInTransitTruckWithCapacity(allTrucks, totalItemCount);
+            selectedTruck = findInTransitTruckWithCapacity(allTrucks, totalItemCount, command.origin());
             isAssigningToInTransitTruck = true;
         }
 
@@ -73,12 +74,19 @@ public class AssignTruck {
         ));
     }
 
-    private Truck findInTransitTruckWithCapacity(List<Truck> trucks, int requiredItemCount) {
+    private Truck findInTransitTruckWithCapacity(List<Truck> trucks, int requiredItemCount, Location shipmentOrigin) {
         return trucks.stream()
                 .filter(truck -> truck.getStatus() == TruckStatus.IN_TRANSIT)
                 .filter(truck -> truck.canAccept(requiredItemCount))
+                .filter(truck -> isTruckRoutePassingThrough(truck, shipmentOrigin))
                 .findFirst()
                 .orElseThrow(NoTruckAvailableException::new);
+    }
+
+    private boolean isTruckRoutePassingThrough(Truck truck, Location shipmentOrigin) {
+        return deliveryRepository.findByTruckId(truck.getTruckId()).stream()
+                .filter(delivery -> !delivery.isCompleted())
+                .anyMatch(delivery -> distanceCalculator.isOnRoute(shipmentOrigin, truck.getLocation(), delivery.getDestination()));
     }
 
     private Delivery buildDelivery(AssignTruckCommand command, Truck truck) {
