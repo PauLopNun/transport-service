@@ -199,6 +199,19 @@ class AssignTruckTest {
     }
 
     @Test
+    void doesNotAssignInTransitTruckWhenAllItsDeliveriesAreCompleted() {
+        TruckId truckId = TruckId.generate();
+        Truck inTransitTruck = inTransitTruck(truckId, new Location(2, 0));
+        Delivery completedDelivery = activeDelivery(truckId, new Location(5, 0)).complete(1);
+
+        when(truckRepository.findAll()).thenReturn(List.of(inTransitTruck));
+        when(deliveryRepository.findByTruckId(truckId)).thenReturn(List.of(completedDelivery));
+
+        assertThatThrownBy(() -> assignTruck.execute(command(new Location(3, 0), new Location(8, 8), 2)))
+                .isInstanceOf(NoTruckAvailableException.class);
+    }
+
+    @Test
     void doesNotAssignInTransitTruckWhoseRouteDoesNotPassThroughShipmentOrigin() {
         TruckId truckId = TruckId.generate();
         Truck inTransitTruck = inTransitTruck(truckId, new Location(2, 0));
