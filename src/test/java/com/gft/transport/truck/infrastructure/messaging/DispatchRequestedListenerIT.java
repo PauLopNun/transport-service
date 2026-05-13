@@ -99,7 +99,7 @@ class DispatchRequestedListenerIT {
             locationResolver.register("warehouse-north-01", new Location(0, 5));
             locationResolver.register("warehouse-south-03", new Location(10, 10));
 
-            publishShipmentRequested(shipmentId, "warehouse-north-01", "warehouse-south-03", UUID.randomUUID(), 3, 2);
+            publishShipmentRequested(shipmentId, "warehouse-north-01", "warehouse-south-03", UUID.randomUUID().toString(), 3, 2);
 
             await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                 var truck = truckJpaRepository.findById(truckId.value()).orElseThrow();
@@ -123,8 +123,8 @@ class DispatchRequestedListenerIT {
 
             String innerJson = String.format(
                     "{\"shipmentId\":\"%s\",\"originId\":\"warehouse-north-01\",\"destinationId\":\"warehouse-south-03\"," +
-                    "\"items\":[{\"productId\":\"%s\",\"quantity\":4}],\"requestedAt\":1}",
-                    shipmentId, UUID.randomUUID()
+                    "\"items\":[{\"productId\":\"wood\",\"quantity\":4}],\"requestedAt\":1}",
+                    shipmentId
             );
             dispatchRequestedListener.onMessage(doubleEncoded(innerJson));
 
@@ -229,7 +229,7 @@ class DispatchRequestedListenerIT {
     }
 
     private void publishShipmentRequested(UUID shipmentId, String originId, String destinationId,
-                                          UUID productId, int quantity, int requestedAt) {
+                                          String productId, int quantity, int requestedAt) {
         String json = String.format(
                 "{\"shipmentId\":\"%s\",\"originId\":\"%s\",\"destinationId\":\"%s\"," +
                 "\"items\":[{\"productId\":\"%s\",\"quantity\":%d}],\"requestedAt\":%d}",

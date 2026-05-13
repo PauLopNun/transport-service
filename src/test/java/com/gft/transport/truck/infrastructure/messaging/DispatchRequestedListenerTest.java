@@ -108,13 +108,13 @@ class DispatchRequestedListenerTest {
     @Test
     void dispatchesTruckWhenMessageIsDoubleEncoded() throws Exception {
         UUID shipmentId = UUID.randomUUID();
+        String productId = UUID.randomUUID().toString();
         Location origin = new Location(0, 10);
         Location destination = new Location(10, 0);
 
         when(locationResolver.resolve("warehouse-north-01")).thenReturn(origin);
         when(locationResolver.resolve("warehouse-south-03")).thenReturn(destination);
 
-        String productId = UUID.randomUUID().toString();
         String innerJson = """
                 {
                     "shipmentId": "%s",

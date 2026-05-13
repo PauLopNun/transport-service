@@ -108,7 +108,8 @@ class TransportServiceEndToEnd {
         awaitWarehousesRegistered("warehouse-origin", "warehouse-dest");
 
         UUID shipmentId = UUID.randomUUID();
-        publishShipmentRequested(shipmentId, "warehouse-origin", "warehouse-dest", UUID.randomUUID(), 4, 1);
+        String productId = UUID.randomUUID().toString();
+        publishShipmentRequested(shipmentId, "warehouse-origin", "warehouse-dest", productId, 4, 1);
         awaitTruckDispatched(truckId, shipmentId);
         assertTruckStatusEventPublished("DISPATCHED");
 
@@ -118,7 +119,7 @@ class TransportServiceEndToEnd {
         publishTimeAdvanced(1, 2, 1);
         awaitTruckAtPosition(truckId, 2, 0, TruckStatus.AVAILABLE);
 
-        assertDeliveryCompletedEventPublished(shipmentId, truckId);
+        assertDeliveryCompletedEventPublished(shipmentId, truckId, productId);
         assertTruckStatusEventPublished("RETURNED_TO_BASE");
     }
 
@@ -134,13 +135,13 @@ class TransportServiceEndToEnd {
         assertThat(body(event)).contains(expectedReason);
     }
 
-    private void assertDeliveryCompletedEventPublished(UUID shipmentId, UUID truckId) {
+    private void assertDeliveryCompletedEventPublished(UUID shipmentId, UUID truckId, String productId) {
         Message event = rabbitTemplate.receive(DELIVERY_COMPLETED_CAPTURE, 5000);
         assertThat(event).isNotNull();
         assertThat(body(event))
                 .contains(shipmentId.toString())
                 .contains(truckId.toString())
-                .contains("wood");
+                .contains(productId);
     }
 
     private void awaitWarehousesRegistered(String... warehouseIds) {
@@ -199,7 +200,7 @@ class TransportServiceEndToEnd {
     }
 
     private void publishShipmentRequested(UUID shipmentId, String originId, String destinationId,
-                                          UUID productId, int quantity, int requestedAt) {
+                                          String productId, int quantity, int requestedAt) {
         String json = String.format(
                 "{\"shipmentId\":\"%s\",\"originId\":\"%s\",\"destinationId\":\"%s\"," +
                 "\"items\":[{\"productId\":\"%s\",\"quantity\":%d}],\"requestedAt\":%d}",

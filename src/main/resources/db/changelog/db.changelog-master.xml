@@ -98,16 +98,7 @@
     </changeSet>
 
     <changeSet id="6" author="ivancarm">
-        <dropColumn tableName="delivery_items" columnName="material_type"/>
-        <addColumn tableName="delivery_items">
-            <column name="product_id" type="UUID">
-                <constraints nullable="false"/>
-            </column>
-        </addColumn>
-    </changeSet>
-
-    <changeSet id="7" author="ivancarm">
-        <modifyDataType tableName="delivery_items" columnName="product_id" newDataType="VARCHAR(255)"/>
+        <renameColumn tableName="delivery_items" oldColumnName="material_type" newColumnName="product_id" columnDataType="VARCHAR(255)"/>
     </changeSet>
 
 </databaseChangeLog>

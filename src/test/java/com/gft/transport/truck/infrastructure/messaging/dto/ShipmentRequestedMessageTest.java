@@ -15,7 +15,7 @@ class ShipmentRequestedMessageTest {
     @Test
     void deserializesAllFieldsFromJson() throws Exception {
         UUID shipmentId = UUID.randomUUID();
-        UUID productId = UUID.randomUUID();
+        String productId = UUID.randomUUID().toString();
         String json = """
                 {
                     "shipmentId": "%s",
@@ -31,7 +31,7 @@ class ShipmentRequestedMessageTest {
         assertThat(message.shipmentId()).isEqualTo(shipmentId);
         assertThat(message.originId()).isEqualTo("warehouse-north-01");
         assertThat(message.destinationId()).isEqualTo("warehouse-south-03");
-        assertThat(message.items()).containsExactly(new DeliveryItem(productId.toString(), 6));
+        assertThat(message.items()).containsExactly(new DeliveryItem(productId, 6));
         assertThat(message.requestedAt()).isEqualTo(3);
     }
 
