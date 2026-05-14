@@ -224,6 +224,21 @@ class AdvanceTrucksTest {
     }
 
     @Test
+    void movesTruckDiagonallyWhenBothAxesDifferFromDestination() {
+        Truck truck = inTransitTruck(new Location(0, 0));
+        Delivery delivery = deliveryFor(truck, new Location(3, 3));
+
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(1, 2);
+
+        ArgumentCaptor<Truck> captor = ArgumentCaptor.forClass(Truck.class);
+        verify(truckRepository, atLeastOnce()).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getLocation()).isEqualTo(new Location(1, 1));
+    }
+
+    @Test
     void stopsAdvancingWhenAllDeliveriesCompleteBeforeAllDaysElapse() {
         Truck truck = inTransitTruck(new Location(0, 0));
         Delivery delivery = deliveryFor(truck, new Location(1, 0));

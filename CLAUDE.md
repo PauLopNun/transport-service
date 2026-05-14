@@ -27,7 +27,7 @@ Five microservices communicating via RabbitMQ:
 | **production** | Idoia | Publishes `shipment.requested.v1` when factory needs materials |
 | **reporting** | Pedro | Anticorruption layer · consumes everything · no writes |
 
-Movement is Manhattan (X first, then Y). Speed = 1 step per simulation day.
+Movement is diagonal (both axes simultaneously) until one coordinate matches destination, then straight. Steps = max(|dx|, |dy|). Speed = 1 step per simulation day.
 
 ---
 
@@ -52,14 +52,14 @@ Movement is Manhattan (X first, then Y). Speed = 1 step per simulation day.
 
 ---
 
-## What is implemented (updated 2026-05-05)
+## What is implemented (updated 2026-05-14)
 
 ### Epic 1 — Domain Model (Iván) — COMPLETE
 - `Truck` aggregate: TruckId, Location, TruckStatus, capacity, currentLoad, speed (default 1), deliveryIds
 - `Delivery` aggregate: DeliveryId, shipmentId (UUID), truckId, origin, destination, items, assignedAt, completedAt — with `isArrived(Location)` and `complete(int)` domain methods
 - Domain events: TruckRegisteredEvent, TruckStatusChangedEvent, TruckPositionUpdatedEvent, DeliveryCompletedEvent — all timestamps are `int` (simulation day)
 - Repository ports: TruckRepository, DeliveryRepository (interfaces)
-- Domain services: DistanceCalculator (Manhattan distance + `isOnRoute`), OptimalTruckSelector
+- Domain services: DistanceCalculator (Chebyshev distance + `isOnRoute`), OptimalTruckSelector
 
 ### Epic 2 — Use Cases (Pau López) — COMPLETE
 - RegisterTruck use case + POST /trucks + GET /trucks
@@ -145,7 +145,7 @@ Full spec: `src/main/resources/openapi.yaml` · Swagger UI: `http://localhost:80
 - `AdvanceTrucks.execute(int daysAdvanced, int currentDay)` — lastDay tracking lives in TimeAdvancedListener, not in the use case.
 - Arrival detection: `delivery.isArrived(truckLocation)` — domain logic belongs on the aggregate.
 - Delivery completion: `delivery.complete(currentDay)` — returns new immutable Delivery with completedAt set.
-- `isOnRoute(point, from, to)` on DistanceCalculator checks if a point is on the L-shaped Manhattan path (X-leg first, then Y-leg). Used by DispatchRequestedListener for the IN_TRANSIT truck fallback.
+- `isOnRoute(point, from, to)` on DistanceCalculator checks if a point is on the diagonal path (both axes move together until one matches, then straight to destination). Used by AssignTruck to check if an IN_TRANSIT truck will pass through a new shipment's origin on its way.
 
 ---
 
