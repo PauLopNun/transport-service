@@ -139,6 +139,26 @@ class DispatchRequestedListenerTest {
         assertThat(command.requestedAt()).isEqualTo(3);
     }
 
+    @Test
+    void discardsShipmentWhenLocationIsUnknown() {
+        UUID shipmentId = UUID.randomUUID();
+        when(locationResolver.resolve("warehouse-north-01"))
+                .thenThrow(new IllegalArgumentException("Unknown warehouse ID: warehouse-north-01"));
+
+        Message message = buildMessage("""
+                {
+                    "shipmentId": "%s",
+                    "originId": "warehouse-north-01",
+                    "destinationId": "warehouse-south-03",
+                    "items": [{"productId": "%s", "quantity": 6}],
+                    "requestedAt": 3
+                }
+                """.formatted(shipmentId, UUID.randomUUID()));
+
+        assertThatCode(() -> listener.onMessage(message)).doesNotThrowAnyException();
+        verifyNoInteractions(assignTruck);
+    }
+
     private Message buildMessage(String json) {
         return MessageBuilder
                 .withBody(json.getBytes(StandardCharsets.UTF_8))
