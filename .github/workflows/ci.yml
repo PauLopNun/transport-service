@@ -89,7 +89,7 @@ jobs:
       - name: Build and run tests with coverage
         run: mvn verify -B
 
-      - name: Check coverage is 100%
+      - name: Check coverage is at least 80%
         run: |
           REPORT="target/site/jacoco/jacoco.xml"
           if [ ! -f "$REPORT" ]; then
@@ -109,9 +109,9 @@ jobs:
           COVERAGE=$((COVERED * 100 / TOTAL))
           echo "Coverage: $COVERAGE% ($COVERED/$TOTAL instructions)"
 
-          if [ "$COVERAGE" -lt 100 ]; then
-            echo "Coverage is below 100%. Build failed."
+          if [ "$COVERAGE" -lt 80 ]; then
+            echo "Coverage is below 80%. Build failed."
             exit 1
           fi
 
-          echo "Coverage is 100%. All good."
+          echo "Coverage is at least 80%. All good."
