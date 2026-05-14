@@ -253,4 +253,25 @@ class DistanceCalculatorTest {
         // Point (6,0) on path (0,0)→(3,0) has value=6 > max=3
         assertThat(calculator.isOnRoute(new Location(6, 0), new Location(0, 0), new Location(3, 0))).isFalse();
     }
+
+    @Test
+    void isBetweenReturnsFalseWhenValueLessThanMin() {
+        // Path: (5,0) → (3,2) → (0,2) straight horizontal backwards
+        // Point (-1,2) has x=-1 < min=0, isBetween checks all branches of &&
+        assertThat(calculator.isOnRoute(new Location(-1, 2), new Location(5, 0), new Location(0, 2))).isFalse();
+    }
+
+    @Test
+    void isOnRouteDiagonalLegWithZeroXOnly() {
+        // Diagonal leg where dx=0, dy!=0 (vertical only)
+        // Path: (0,0) → (0,5), point (0,0) should be on route at origin
+        assertThat(calculator.isOnRoute(new Location(0, 0), new Location(0, 0), new Location(0, 5))).isTrue();
+    }
+
+    @Test
+    void isOnRouteDiagonalLegWithZeroYOnly() {
+        // Diagonal leg where dx!=0, dy=0 (horizontal only)
+        // Path: (0,0) → (5,0), point (2,0) is on horizontal leg
+        assertThat(calculator.isOnRoute(new Location(2, 0), new Location(0, 0), new Location(5, 0))).isTrue();
+    }
 }
