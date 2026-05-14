@@ -23,7 +23,8 @@ info:
   version: 1.0.0-MVP
 
 servers:
-  - url: http://localhost:8080
+  - url: /
+    description: Current host
 
 paths:
   /trucks:
