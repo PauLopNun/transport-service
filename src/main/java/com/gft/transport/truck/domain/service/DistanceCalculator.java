@@ -22,9 +22,7 @@ public class DistanceCalculator {
     private boolean isOnDiagonalLeg(Location point, Location from, Location to) {
         int dx = to.x() - from.x();
         int dy = to.y() - from.y();
-        if (dx == 0) {
-            if (dy == 0) return point.equals(from);
-        }
+        if ((dx == 0) & (dy == 0)) return point.equals(from);
         int dpx = point.x() - from.x();
         int dpy = point.y() - from.y();
         if (Math.abs(dpx) != Math.abs(dpy)) return false;
