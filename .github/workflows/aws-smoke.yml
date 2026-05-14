@@ -1,0 +1,54 @@
+name: aws-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_url:
+        description: Public Transport Service URL
+        required: true
+        default: http://taller-deploy-aws-2026-nlb-pulz-adee7212e878911f.elb.eu-west-1.amazonaws.com:8080
+      skip_purge:
+        description: Do not purge Transport input queues before the smoke test
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  smoke:
+    name: AWS smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check REST endpoint
+        run: curl --fail --show-error --silent "${{ inputs.service_url }}/trucks"
+
+      - name: Run CloudAMQP end-to-end smoke
+        shell: pwsh
+        env:
+          CLOUDAMQP_PASSWORD: ${{ secrets.CLOUDAMQP_PASSWORD }}
+          CLOUDAMQP_HOST: ${{ vars.CLOUDAMQP_HOST || 'seal.lmq.cloudamqp.com' }}
+          CLOUDAMQP_VHOST: ${{ vars.CLOUDAMQP_VHOST || 'ibvztclz' }}
+          CLOUDAMQP_USER: ${{ vars.CLOUDAMQP_USER || 'ibvztclz' }}
+          SERVICE_URL: ${{ inputs.service_url }}
+          SKIP_PURGE: ${{ inputs.skip_purge }}
+        run: |
+          if (-not $env:CLOUDAMQP_PASSWORD) {
+            throw "Missing GitHub secret CLOUDAMQP_PASSWORD"
+          }
+
+          $args = @(
+            "-RabbitHost", $env:CLOUDAMQP_HOST,
+            "-Vhost", $env:CLOUDAMQP_VHOST,
+            "-User", $env:CLOUDAMQP_USER,
+            "-Password", $env:CLOUDAMQP_PASSWORD,
+            "-ServiceUrl", $env:SERVICE_URL
+          )
+
+          if ($env:SKIP_PURGE -eq "true") {
+            $args += "-SkipPurge"
+          }
+
+          ./verify-e2e.ps1 @args
