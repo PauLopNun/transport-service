@@ -39,7 +39,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 @ActiveProfiles("local")
-class TransportServiceEndToEnd {
+class TransportServiceEndToEndIT {
 
     private static final String TRUCK_REGISTERED_CAPTURE   = "e2e.capture.truck.registered";
     private static final String TRUCK_STATUS_CAPTURE       = "e2e.capture.truck.status.changed";

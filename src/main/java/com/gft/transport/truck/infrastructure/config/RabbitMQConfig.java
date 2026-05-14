@@ -8,6 +8,7 @@ import org.springframework.amqp.support.converter.Jackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.amqp.support.converter.SimpleMessageConverter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,6 +28,9 @@ public class RabbitMQConfig {
     public static final String TIME_ADVANCED_ROUTING_KEY      = "time.advanced.v1";
     public static final String WAREHOUSE_REGISTERED_ROUTING_KEY = "warehouse.registered.v1";
 
+    @Value("${transport.rabbitmq.declare-external-exchanges:false}")
+    private boolean declareExternalExchanges;
+
     @Bean
     public TopicExchange trucksExchange() {
         return new TopicExchange(TRUCKS_EXCHANGE);
@@ -35,21 +39,21 @@ public class RabbitMQConfig {
     @Bean
     public TopicExchange shipmentsExchange() {
         TopicExchange exchange = new TopicExchange(SHIPMENTS_EXCHANGE);
-        exchange.setShouldDeclare(false);
+        exchange.setShouldDeclare(declareExternalExchanges);
         return exchange;
     }
 
     @Bean
     public TopicExchange simulationExchange() {
         TopicExchange exchange = new TopicExchange(SIMULATION_EXCHANGE);
-        exchange.setShouldDeclare(false);
+        exchange.setShouldDeclare(declareExternalExchanges);
         return exchange;
     }
 
     @Bean
     public TopicExchange warehousesExchange() {
         TopicExchange exchange = new TopicExchange(WAREHOUSES_EXCHANGE);
-        exchange.setShouldDeclare(false);
+        exchange.setShouldDeclare(declareExternalExchanges);
         return exchange;
     }
 
