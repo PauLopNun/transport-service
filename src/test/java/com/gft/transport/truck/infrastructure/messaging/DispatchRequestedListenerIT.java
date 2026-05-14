@@ -12,6 +12,7 @@ import com.gft.transport.truck.domain.repository.TruckRepository;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
 import com.gft.transport.truck.infrastructure.persistence.TruckJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
@@ -38,6 +39,7 @@ import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
+@Tag("docker")
 @ActiveProfiles("local")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class DispatchRequestedListenerIT {

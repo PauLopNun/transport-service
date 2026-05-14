@@ -8,6 +8,7 @@ import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
 import com.gft.transport.truck.infrastructure.messaging.LocationResolver;
 import com.gft.transport.truck.infrastructure.persistence.TruckJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Message;
@@ -38,6 +39,7 @@ import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers(disabledWithoutDocker = true)
+@Tag("docker")
 @ActiveProfiles("local")
 class TransportServiceEndToEndIT {
 

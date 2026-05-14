@@ -7,6 +7,7 @@ import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Message;
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
+@Tag("docker")
 class TruckEventPublisherIT {
 
     @Container
