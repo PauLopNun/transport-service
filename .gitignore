@@ -47,4 +47,5 @@ graphify-out/manifest.json
 graphify-out/cost.json
 graphify-out/cache/
 graphify-out/.graphify_*.json
+htmlReport/
 

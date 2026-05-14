@@ -1,7 +1,7 @@
 logging:
   level:
-    org.springframework.amqp: DEBUG
-    com.gft.transport: DEBUG
+    org.springframework.amqp: WARN
+    com.gft.transport: INFO
 
 spring:
   config:
@@ -38,6 +38,10 @@ spring:
     virtual-host: ${RABBITMQ_VIRTUAL_HOST:ibvztclz}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
+
+transport:
+  rabbitmq:
+    declare-external-exchanges: false
 
 ---
 spring:
@@ -76,3 +80,7 @@ spring:
     virtual-host: /
     ssl:
       enabled: false
+
+transport:
+  rabbitmq:
+    declare-external-exchanges: true

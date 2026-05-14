@@ -28,7 +28,8 @@ import org.springframework.context.annotation.Configuration;
 
                         Consumed by Transport:
                         - shipments.exchange + shipment.requested.v1 -> trucks.shipment.requested
-                        - simulation.exchange + time.advanced.v1 -> trucks.time.advanced
+                        - ms-time.exchange + time.advanced.v1 -> trucks.time.advanced
+                        - warehouses.exchange + warehouse.registered.v1 -> trucks.warehouse.registered
 
                         Important: Reporting, Map UI and other consumers must declare their own queues and bind them to the exchange/routing keys they need. Transport does not create bindings for other services.
                         """,
