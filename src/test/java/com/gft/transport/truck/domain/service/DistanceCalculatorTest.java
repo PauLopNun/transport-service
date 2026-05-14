@@ -31,13 +31,13 @@ class DistanceCalculatorTest {
     }
 
     @Test
-    void calculatesManhattanDistanceNotEuclidean() {
-        assertThat(calculator.calculate(new Location(0, 0), new Location(3, 4))).isEqualTo(7);
+    void calculatesChebyshevDistance() {
+        assertThat(calculator.calculate(new Location(0, 0), new Location(3, 4))).isEqualTo(4);
     }
 
     @Test
     void worksWithNegativeCoordinates() {
-        assertThat(calculator.calculate(new Location(-1, -1), new Location(2, 3))).isEqualTo(7);
+        assertThat(calculator.calculate(new Location(-1, -1), new Location(2, 3))).isEqualTo(4);
     }
 
     @Test
@@ -49,14 +49,14 @@ class DistanceCalculatorTest {
 
     @Test
     void isOnRouteReturnsTrueForPointOnHorizontalSegment() {
-        // path: (0,0) → (3,0) → (3,4), point (2,0) is on horizontal leg
-        assertThat(calculator.isOnRoute(new Location(2, 0), new Location(0, 0), new Location(3, 4))).isTrue();
+        // path: (0,0) → diagonal → (3,3) → straight → (3,4), point (1,1) is on diagonal leg
+        assertThat(calculator.isOnRoute(new Location(1, 1), new Location(0, 0), new Location(3, 4))).isTrue();
     }
 
     @Test
     void isOnRouteReturnsTrueForPointOnVerticalSegment() {
-        // path: (0,0) → (3,0) → (3,4), point (3,2) is on vertical leg
-        assertThat(calculator.isOnRoute(new Location(3, 2), new Location(0, 0), new Location(3, 4))).isTrue();
+        // path: (0,0) → diagonal → (2,2) → straight → (2,5), point (2,3) is on straight leg
+        assertThat(calculator.isOnRoute(new Location(2, 3), new Location(0, 0), new Location(2, 5))).isTrue();
     }
 
     @Test
@@ -71,14 +71,14 @@ class DistanceCalculatorTest {
 
     @Test
     void isOnRouteReturnsFalseForPointOffPath() {
-        // point (1,1) is off the L-shaped path (0,0)→(3,0)→(3,4)
-        assertThat(calculator.isOnRoute(new Location(1, 1), new Location(0, 0), new Location(3, 4))).isFalse();
+        // path: (0,0) → diagonal → (3,3) → straight → (3,4), point (2,0) is off path
+        assertThat(calculator.isOnRoute(new Location(2, 0), new Location(0, 0), new Location(3, 4))).isFalse();
     }
 
     @Test
     void isOnRouteWorksWithNegativeCoordinates() {
-        // path: (-2,0) → (0,0) → (0,3), point (-1,0) is on horizontal leg
-        assertThat(calculator.isOnRoute(new Location(-1, 0), new Location(-2, 0), new Location(0, 3))).isTrue();
+        // path: (-2,0) → diagonal → (0,2) → straight → (0,3), point (-1,1) is on diagonal leg
+        assertThat(calculator.isOnRoute(new Location(-1, 1), new Location(-2, 0), new Location(0, 3))).isTrue();
     }
 
     @Test
@@ -91,5 +91,11 @@ class DistanceCalculatorTest {
     void isOnRouteReturnsFalseWhenPointIsOnSameXAsDestinationButBeyondYRange() {
         // path: (0,0) → (3,0) → (3,4), point (3,5) shares X with destination but Y is past range
         assertThat(calculator.isOnRoute(new Location(3, 5), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPointOnDiagonalLeg() {
+        // path: (0,0) → diagonal → (3,3) → straight → (3,4), point (2,2) is on diagonal leg
+        assertThat(calculator.isOnRoute(new Location(2, 2), new Location(0, 0), new Location(3, 4))).isTrue();
     }
 }

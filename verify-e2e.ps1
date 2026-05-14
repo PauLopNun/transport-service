@@ -9,7 +9,9 @@ param(
     [string]$Vhost      = "ibvztclz",
     [string]$User       = "ibvztclz",
     [string]$Password   = $env:RABBITMQ_PASSWORD,
-    [string]$ServiceUrl = "http://localhost:8080"
+    [string]$ServiceUrl = "http://localhost:8080",
+    [switch]$SkipPurge,
+    [switch]$PurgeMapQueues
 )
 
 if (-not $Password) { Write-Error "Provide -Password or set RABBITMQ_PASSWORD"; exit 1 }
@@ -54,6 +56,15 @@ function DeleteQueue($name) {
     try { Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Delete -Headers $rmqH | Out-Null } catch {}
 }
 
+function PurgeQueue($name) {
+    try {
+        Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))/contents" -Method Delete -Headers $rmqH | Out-Null
+        Write-Host "         Purged $name" -ForegroundColor DarkGray
+    } catch {
+        Write-Host "         Skipped $name (queue not found or no permission)" -ForegroundColor DarkGray
+    }
+}
+
 Write-Host "`n============================================" -ForegroundColor White
 Write-Host "  transport-service  end-to-end verification" -ForegroundColor White
 Write-Host "============================================"  -ForegroundColor White
@@ -62,6 +73,22 @@ $origin   = @{ id = "e2e-warehouse-A"; x = 0; y = 0 }
 $dest     = @{ id = "e2e-warehouse-B"; x = 20; y = 15 }
 $distance = [Math]::Abs($dest.x - $origin.x) + [Math]::Abs($dest.y - $origin.y)
 $tmpQueue = "e2e-status-verify"
+
+if (-not $SkipPurge) {
+    Step "0. CloudAMQP cleanup -- purge stale E2E messages"
+    $queuesToPurge = @(
+        "trucks.warehouse.registered",
+        "trucks.shipment.requested",
+        "trucks.time.advanced"
+    )
+    if ($PurgeMapQueues) {
+        $queuesToPurge += @(
+            "ms-map.truck-registered.q",
+            "ms-map.truck-position-updated.q"
+        )
+    }
+    foreach ($queue in $queuesToPurge) { PurgeQueue $queue }
+}
 
 # Create temp queue bound to trucks.exchange to capture truck.status.changed.v1.
 # Deleted in the finally block below so it never lingers in the broker.
@@ -121,11 +148,13 @@ Start-Sleep -Seconds 1
 Step "5. shipment.requested.v1 -- truck assigned, status IN_TRANSIT"
 $shipmentId = [Guid]::NewGuid().ToString()
 $routed = Publish "shipments.exchange" "shipment.requested.v1" @{
-    shipmentId    = $shipmentId
-    originId      = $origin.id
-    destinationId = $dest.id
-    items         = @(@{ productId = [Guid]::NewGuid().ToString(); quantity = 6 })
-    requestedAt   = 1
+    shipmentId             = $shipmentId
+    originId               = $origin.id
+    destinationId          = $dest.id
+    originWarehouseId      = $origin.id
+    destinationWarehouseId = $dest.id
+    items                  = @(@{ productId = [Guid]::NewGuid().ToString(); quantity = 6 })
+    requestedAt            = 1
 }
 if ($routed) {
     Pass "shipment.requested.v1 routed to consumer"
@@ -154,29 +183,36 @@ if ($dispatchedMsgs -ge 1) {
 }
 
 # 7 - time.advanced.v1 -> truck moves
+# currentDay starts at 2 (day 1 = shipment assignment day).
+# eventId + occurredAt included to match Rubén's full contract so the map service
+# can parse and advance its day counter correctly.
 Step "7. time.advanced.v1 consumed -- truck moves $distance steps to ($($dest.x),$($dest.y))"
-$moveFailed = $false
+$moveFailed  = $false
+$simulationDay = 1
 for ($i = 1; $i -le $distance; $i++) {
+    $simulationDay++
     Publish "ms-time.exchange" "time.advanced.v1" @{
-        previousDay  = $i
-        currentDay   = ($i + 1)
+        previousDay  = $simulationDay - 1
+        currentDay   = $simulationDay
         daysAdvanced = 1
+        eventId      = [Guid]::NewGuid().ToString()
+        occurredAt   = (Get-Date -Format "o")
     } | Out-Null
-    Start-Sleep -Milliseconds 700
+    Start-Sleep -Milliseconds 50
     $t        = GetTruck $truckId
     $arriving = ($i -eq $distance)
     if ($arriving) {
         if ($t.status -eq "AVAILABLE" -and $t.location.x -eq $dest.x -and $t.location.y -eq $dest.y) {
-            Pass "Tick $i -- arrived at ($($dest.x),$($dest.y)), status back to AVAILABLE"
+            Pass "Tick $i (day $simulationDay) -- arrived at ($($dest.x),$($dest.y)), status back to AVAILABLE"
         } else {
-            Fail "Tick $i -- expected AVAILABLE at ($($dest.x),$($dest.y)), got $($t.status) at ($($t.location.x),$($t.location.y))"
+            Fail "Tick $i (day $simulationDay) -- expected AVAILABLE at ($($dest.x),$($dest.y)), got $($t.status) at ($($t.location.x),$($t.location.y))"
             $moveFailed = $true
         }
     } else {
         if ($t.status -eq "IN_TRANSIT") {
-            Write-Host "         Tick $i -- IN_TRANSIT at ($($t.location.x),$($t.location.y))" -ForegroundColor DarkGray
+            Write-Host "         Tick $i (day $simulationDay) -- IN_TRANSIT at ($($t.location.x),$($t.location.y))" -ForegroundColor DarkGray
         } else {
-            Fail "Tick $i -- expected IN_TRANSIT, got $($t.status)"
+            Fail "Tick $i (day $simulationDay) -- expected IN_TRANSIT, got $($t.status)"
             $moveFailed = $true
             break
         }
