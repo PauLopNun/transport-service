@@ -133,11 +133,8 @@ public class AdvanceTrucks {
     }
 
     private Location calculateNextStep(Location current, Location destination) {
-        if (current.x() != destination.x()) {
-            int xDirection = destination.x() > current.x() ? 1 : -1;
-            return new Location(current.x() + xDirection, current.y());
-        }
-        int yDirection = destination.y() > current.y() ? 1 : -1;
-        return new Location(current.x(), current.y() + yDirection);
+        int xDirection = Integer.signum(destination.x() - current.x());
+        int yDirection = Integer.signum(destination.y() - current.y());
+        return new Location(current.x() + xDirection, current.y() + yDirection);
     }
 }
