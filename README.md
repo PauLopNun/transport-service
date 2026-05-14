@@ -70,7 +70,14 @@ RABBITMQ_PASSWORD=your_password
 
 ```powershell
 .\verify-e2e.ps1 -Password "your_cloudamqp_password"
+
+# Against the AWS deployment
+.\verify-e2e.ps1 -Password "your_cloudamqp_password" -ServiceUrl "http://taller-deploy-aws-2026-nlb-pulz-adee7212e878911f.elb.eu-west-1.amazonaws.com:8080"
 ```
+
+By default the script purges stale messages from Transport input queues in CloudAMQP before publishing the E2E events. Use `-SkipPurge` to disable that cleanup, or `-PurgeMapQueues` when you also want to clear the map verification queues before the run.
+
+The same smoke check can be launched manually from GitHub Actions with the `aws-smoke` workflow. Configure the `CLOUDAMQP_PASSWORD` repository secret before running it.
 
 **What it covers:**
 
@@ -78,32 +85,33 @@ RABBITMQ_PASSWORD=your_password
 |---|---|
 | 1 | `POST /trucks` — truck registered, status AVAILABLE |
 | 2 | `GET /trucks` — truck visible in read model |
-| 3 | `truck.registered.v1` delivered to map service queue |
+| 3 | `truck.registered.v1` published to `trucks.exchange` |
 | 4 | `warehouse.registered.v1` consumed — LocationResolver populated |
 | 5 | `shipment.requested.v1` → truck changes to IN_TRANSIT |
 | 6 | `truck.status.changed.v1 (DISPATCHED)` published to broker |
 | 7 | `time.advanced.v1` ticks consumed — truck moves step by step |
-| 8 | `truck.position.updated.v1` delivered to map service queue |
+| 8 | `truck.position.updated.v1` published to `trucks.exchange` |
 | 9 | `delivery.completed.v1` + `truck.status.changed.v1 (RETURNED_TO_BASE)` |
 
-> **Note:** Before each run, purge the `trucks.warehouse.registered` queue from the CloudAMQP management UI to avoid stale messages from previous runs interfering with LocationResolver population.
+> **Note:** The cleanup step targets `trucks.warehouse.registered`, `trucks.shipment.requested`, and `trucks.time.advanced` so previous E2E runs do not interfere with `LocationResolver` or truck movement.
 
 ---
 
 ## RabbitMQ Exchange Map
 
-### Exchanges owned by this service
+### Exchanges used by this service
 
 | Exchange | Type | Purpose |
 |---|---|---|
-| `trucks.exchange` | Topic | All events published by transport-service |
+| `trucks.exchange` | Topic | Truck events published by transport-service |
+| `shipments.exchange` | Topic | Shipment requests consumed and delivery completion events published by transport-service |
 
 ### External exchanges (declared by other services)
 
 | Exchange | Owner | Events consumed |
 |---|---|---|
 | `ms-time.exchange` | Simulation (Rubén) | `time.advanced.v1` |
-| `shipments.exchange` | Warehouses / Factories | `shipment.requested.v1` |
+| `shipments.exchange` | Warehouses / Factories | `shipment.requested.v1`, `delivery.completed.v1` |
 | `warehouses.exchange` | Warehouses | `warehouse.registered.v1` |
 
 ### Queues declared by this service
@@ -128,7 +136,7 @@ RABBITMQ_PASSWORD=your_password
 
 ## PUBLISHED Contracts
 
-All events are published to `trucks.exchange`.
+Transport publishes truck events to `trucks.exchange` and delivery completion events to `shipments.exchange`.
 
 ---
 
@@ -260,6 +268,7 @@ Real-time truck position. High frequency — carries no business data.
 
 Confirms that a truck has completed a delivery at a destination warehouse.
 
+**Exchange:** `shipments.exchange`
 **Routing key:** `delivery.completed.v1`
 **Consumers:** Warehouses | Reporting | Map (ms-map)
 
@@ -268,7 +277,7 @@ Confirms that a truck has completed a delivery at a destination warehouse.
 | `shipmentId` | String (UUID) | Correlates with the original `shipment.requested.v1` |
 | `truckId` | String (UUID) | `[+]` Truck that completed the delivery |
 | `items[]` | Array of Value Objects | Items delivered |
-| `items[].materialType` | String | Type of material |
+| `items[].productId` | String (UUID) | Product identifier |
 | `items[].quantity` | Number | Quantity delivered |
 | `location` | Value Object | Destination coordinates |
 | `location.x` | Number | X coordinate |
@@ -282,7 +291,7 @@ Confirms that a truck has completed a delivery at a destination warehouse.
   "shipmentId": "f7e6d5c4-b3a2-1098-fedc-ba9876543210",
   "truckId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "items": [
-    { "materialType": "wood", "quantity": 6 }
+    { "productId": "0f7b8f0f-5e80-4a9f-9d9d-2a5ad3a6d8b1", "quantity": 6 }
   ],
   "location": { "x": 8, "y": 2 },
   "completedAt": 5
@@ -335,7 +344,7 @@ Request to transport materials between two locations.
 | `originId` | String | ID of the origin warehouse or factory |
 | `destinationId` | String | ID of the destination warehouse |
 | `items[]` | Array of Value Objects | Items to transport |
-| `items[].materialType` | String | Type of material |
+| `items[].productId` | String (UUID) | Product identifier |
 | `items[].quantity` | Number | Quantity |
 | `requestedAt` | Integer | Simulation day of the request |
 
@@ -347,7 +356,7 @@ Request to transport materials between two locations.
   "originId": "warehouse-north-01",
   "destinationId": "warehouse-south-03",
   "items": [
-    { "materialType": "wood", "quantity": 6 }
+    { "productId": "0f7b8f0f-5e80-4a9f-9d9d-2a5ad3a6d8b1", "quantity": 6 }
   ],
   "requestedAt": 3
 }
@@ -421,7 +430,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 | `truck.registered.v1` | PUBLISHES | `trucks.exchange` | Reporting \| Map (ms-map) |
 | `truck.status.changed.v1` | PUBLISHES | `trucks.exchange` | Reporting |
 | `truck.position.updated.v1` | PUBLISHES | `trucks.exchange` | Map (ms-map) \| Reporting |
-| `delivery.completed.v1` | PUBLISHES | `trucks.exchange` | Warehouses \| Reporting \| Map (ms-map) |
+| `delivery.completed.v1` | PUBLISHES | `shipments.exchange` | Warehouses \| Reporting \| Map (ms-map) |
 | `time.advanced.v1` | CONSUMES | `ms-time.exchange` | Emitted by: Simulation (Rubén) |
 | `shipment.requested.v1` | CONSUMES | `shipments.exchange` | Emitted by: Warehouses / Factories |
 | `warehouse.registered.v1` | CONSUMES | `warehouses.exchange` | Emitted by: Warehouses |
@@ -434,5 +443,5 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 - No `itemId` — identified by their attribute values.
 - Immutable — copied in full in each message.
-- Structure: `{ materialType: String, quantity: Number }`.
-- The `materialType` naming convention must be agreed across all teams.
+- Structure: `{ productId: String, quantity: Number }`.
+- `productId` is a UUID string shared across services.

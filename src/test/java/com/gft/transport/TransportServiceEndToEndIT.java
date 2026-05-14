@@ -8,6 +8,7 @@ import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
 import com.gft.transport.truck.infrastructure.messaging.LocationResolver;
 import com.gft.transport.truck.infrastructure.persistence.TruckJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Message;
@@ -37,9 +38,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
+@Tag("docker")
 @ActiveProfiles("local")
-class TransportServiceEndToEnd {
+class TransportServiceEndToEndIT {
 
     private static final String TRUCK_REGISTERED_CAPTURE   = "e2e.capture.truck.registered";
     private static final String TRUCK_STATUS_CAPTURE       = "e2e.capture.truck.status.changed";

@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<failsafe.excludedGroups>docker</failsafe.excludedGroups>
 	</properties>
 	<dependencies>
 		<!-- OpenAPI / Swagger UI -->
@@ -137,6 +138,7 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<configuration>
 					<argLine>@{argLine}</argLine>
+					<excludedGroups>${failsafe.excludedGroups}</excludedGroups>
 				</configuration>
 				<executions>
 					<execution>
@@ -265,6 +267,12 @@
 	</build>
 
 	<profiles>
+		<profile>
+			<id>docker-it</id>
+			<properties>
+				<failsafe.excludedGroups></failsafe.excludedGroups>
+			</properties>
+		</profile>
 		<profile>
 			<id>reset-compose-before-run</id>
 			<build>

@@ -2,8 +2,6 @@ name: ci
 
 on:
   push:
-    branches-ignore:
-      - main
   pull_request:
     branches:
       - main
@@ -12,6 +10,7 @@ jobs:
   check-branch-name:
     name: Check branch name
     runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
     steps:
       - name: Validate branch name
         run: |
