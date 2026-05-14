@@ -239,4 +239,18 @@ class DistanceCalculatorTest {
         // Tests both branches of && in isBetween: min <= value AND value <= max both true
         assertThat(calculator.isOnRoute(new Location(5, 2), new Location(0, 0), new Location(5, 2))).isTrue();
     }
+
+    @Test
+    void isOnRoutePointAtOriginOfZeroDiagonalLeg() {
+        // Path: (0,0) → (5,0), zero-length diagonal at (0,0)
+        // Point (0,0) equals from, returns true in line 25 branch
+        assertThat(calculator.isOnRoute(new Location(0, 0), new Location(0, 0), new Location(5, 0))).isTrue();
+    }
+
+    @Test
+    void isBetweenShortCircuitWhenMinGreaterThanValue() {
+        // Path with point outside range to trigger short-circuit of &&
+        // Point (6,0) on path (0,0)→(3,0) has value=6 > max=3
+        assertThat(calculator.isOnRoute(new Location(6, 0), new Location(0, 0), new Location(3, 0))).isFalse();
+    }
 }
