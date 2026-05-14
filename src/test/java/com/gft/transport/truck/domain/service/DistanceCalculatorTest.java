@@ -213,4 +213,30 @@ class DistanceCalculatorTest {
         // Point at exact end of straight vertical leg
         assertThat(calculator.isOnRoute(new Location(2, 5), new Location(0, 0), new Location(2, 5))).isTrue();
     }
+
+    @Test
+    void isOnRouteDiagonalLegZeroLengthPointOnHorizontalLeg() {
+        // Path: (0,0) → (5,0) has zero-length diagonal leg (dy=0)
+        // Point (1,0) is on the straight horizontal leg after zero diagonal
+        assertThat(calculator.isOnRoute(new Location(1, 0), new Location(0, 0), new Location(5, 0))).isTrue();
+    }
+
+    @Test
+    void isOnRouteHorizontalStraightLegWithPointNotOnY() {
+        // Path: (0,0) → (3,0) straight horizontal, point (2,1) has wrong Y
+        assertThat(calculator.isOnRoute(new Location(2, 1), new Location(0, 0), new Location(3, 0))).isFalse();
+    }
+
+    @Test
+    void isOnRouteHorizontalStraightLegWithPointOutOfXRange() {
+        // Path: (0,0) → (3,0) straight horizontal, point (5,0) Y correct but X outside range
+        assertThat(calculator.isOnRoute(new Location(5, 0), new Location(0, 0), new Location(3, 0))).isFalse();
+    }
+
+    @Test
+    void isBetweenBothConditionsMustBeTrue() {
+        // Path: (0,0) → (0,2) → (5,2) straight to (5,2), point (5,2) at exact end
+        // Tests both branches of && in isBetween: min <= value AND value <= max both true
+        assertThat(calculator.isOnRoute(new Location(5, 2), new Location(0, 0), new Location(5, 2))).isTrue();
+    }
 }
