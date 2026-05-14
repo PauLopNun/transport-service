@@ -98,4 +98,119 @@ class DistanceCalculatorTest {
         // path: (0,0) → diagonal → (3,3) → straight → (3,4), point (2,2) is on diagonal leg
         assertThat(calculator.isOnRoute(new Location(2, 2), new Location(0, 0), new Location(3, 4))).isTrue();
     }
+
+    @Test
+    void isOnRouteReturnsFalseForPointWithWrongXDirection() {
+        // path: (0,0) → diagonal → (3,3) → straight → (3,4)
+        // point (-1,1) has wrong X direction for diagonal
+        assertThat(calculator.isOnRoute(new Location(-1, 1), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointWithWrongYDirection() {
+        // path: (0,0) → diagonal → (3,3) → straight → (3,4)
+        // point (1,-1) has wrong Y direction for diagonal
+        assertThat(calculator.isOnRoute(new Location(1, -1), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointPastDiagonalLeg() {
+        // path: (0,0) → diagonal → (3,3) → straight → (3,4)
+        // point (4,4) is past the diagonal turning point
+        assertThat(calculator.isOnRoute(new Location(4, 4), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPointOnHorizontalStraightLeg() {
+        // path: (0,0) → diagonal → (2,2) → straight horizontal to (5,2)
+        // point (3,2) is on horizontal straight leg
+        assertThat(calculator.isOnRoute(new Location(3, 2), new Location(0, 0), new Location(5, 2))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPointOnVerticalStraightLeg() {
+        // path: (0,0) → diagonal → (2,2) → straight vertical to (2,5)
+        // point (2,4) is on vertical straight leg
+        assertThat(calculator.isOnRoute(new Location(2, 4), new Location(0, 0), new Location(2, 5))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForTurningPoint() {
+        // Turning point is on both diagonal and straight legs
+        assertThat(calculator.isOnRoute(new Location(3, 3), new Location(0, 0), new Location(3, 4))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseWhenPointNotOnDiagonalDueToUnequalDisplacement() {
+        // (2,1) has |dpx|=2, |dpy|=1 - not equal so not on diagonal
+        assertThat(calculator.isOnRoute(new Location(2, 1), new Location(0, 0), new Location(3, 3))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPureDiagonalPath() {
+        // Pure diagonal: (0,0) → (3,3), point (1,1) on diagonal
+        assertThat(calculator.isOnRoute(new Location(1, 1), new Location(0, 0), new Location(3, 3))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueWhenFromEqualsDestination() {
+        // from == to, point at from should be true
+        assertThat(calculator.isOnRoute(new Location(5, 5), new Location(5, 5), new Location(5, 5))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseWhenPointIsNotOnAnyLeg() {
+        // (1,3) not on path (0,0)→(2,2)→(2,5)
+        assertThat(calculator.isOnRoute(new Location(1, 3), new Location(0, 0), new Location(2, 5))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointOnHorizontalButOutOfRange() {
+        // (5,0) on horizontal but beyond destination x range (0,0)→(3,3)→(3,4)
+        assertThat(calculator.isOnRoute(new Location(5, 0), new Location(0, 0), new Location(3, 4))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointOnVerticalButOutOfRange() {
+        // (2,3) has x=2 but straight leg at x=3 for path (0,0)→(2,2)→(2,5)
+        assertThat(calculator.isOnRoute(new Location(1, 3), new Location(0, 0), new Location(2, 5))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForStartPointOfStraightLeg() {
+        // Point at transition from diagonal to straight
+        assertThat(calculator.isOnRoute(new Location(2, 2), new Location(0, 0), new Location(2, 5))).isTrue();
+    }
+
+    @Test
+    void isOnRouteWithNegativeDiagonalPath() {
+        // Negative direction: (-3,-3) diagonal with negative values
+        assertThat(calculator.isOnRoute(new Location(-2, -2), new Location(0, 0), new Location(-3, -3))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointOnHorizontalStraightLegButWrongY() {
+        // Path: (0,0) → diagonal → (3,3) → straight → (5,3)
+        // Point (4,2) is on correct x range but wrong y for horizontal leg
+        assertThat(calculator.isOnRoute(new Location(4, 2), new Location(0, 0), new Location(5, 3))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsFalseForPointOnVerticalStraightLegButWrongX() {
+        // Path: (0,0) → diagonal → (2,2) → straight → (2,5)
+        // Point (3,4) is on correct y range but wrong x for vertical leg
+        assertThat(calculator.isOnRoute(new Location(3, 4), new Location(0, 0), new Location(2, 5))).isFalse();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPointAtEndOfHorizontalStraightLeg() {
+        // Point at exact end of straight horizontal leg
+        assertThat(calculator.isOnRoute(new Location(5, 3), new Location(0, 0), new Location(5, 3))).isTrue();
+    }
+
+    @Test
+    void isOnRouteReturnsTrueForPointAtEndOfVerticalStraightLeg() {
+        // Point at exact end of straight vertical leg
+        assertThat(calculator.isOnRoute(new Location(2, 5), new Location(0, 0), new Location(2, 5))).isTrue();
+    }
 }
