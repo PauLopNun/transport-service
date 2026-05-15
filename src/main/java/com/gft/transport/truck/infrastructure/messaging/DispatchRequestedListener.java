@@ -27,7 +27,8 @@ public class DispatchRequestedListener {
     @RabbitListener(queues = RabbitMQConfig.SHIPMENT_REQUESTED_QUEUE)
     public void onMessage(Message message) {
         ShipmentRequestedMessage msg = parseMessage(message);
-
+        log.info("Shipment requested: shipmentId={} from={} to={} items={}",
+                msg.shipmentId(), msg.originId(), msg.destinationId(), msg.items().size());
         try {
             AssignTruckCommand command = new AssignTruckCommand(
                     msg.shipmentId(),

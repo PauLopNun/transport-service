@@ -5,9 +5,11 @@ import com.gft.transport.delivery.domain.event.DeliveryCompletedEvent;
 import com.gft.transport.delivery.infrastructure.messaging.dto.DeliveryCompletedMessage;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RabbitMQDeliveryEventPublisher implements DeliveryEventPublisher {
@@ -21,5 +23,6 @@ public class RabbitMQDeliveryEventPublisher implements DeliveryEventPublisher {
                 "delivery.completed.v1",
                 DeliveryCompletedMessage.from(event)
         );
+        log.debug("Published delivery.completed.v1: shipmentId={} truckId={}", event.getShipmentId(), event.getTruckId().value());
     }
 }

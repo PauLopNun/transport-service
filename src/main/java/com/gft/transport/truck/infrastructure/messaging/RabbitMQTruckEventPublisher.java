@@ -9,9 +9,11 @@ import com.gft.transport.truck.infrastructure.messaging.dto.TruckPositionUpdated
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckRegisteredMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckStatusChangedMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
@@ -25,6 +27,7 @@ public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
                 "truck.registered.v1",
                 TruckRegisteredMessage.from(event)
         );
+        log.debug("Published truck.registered.v1: truckId={}", event.getTruckId().value());
     }
 
     @Override
@@ -34,6 +37,7 @@ public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
                 "truck.status.changed.v1",
                 TruckStatusChangedMessage.from(event)
         );
+        log.debug("Published truck.status.changed.v1: truckId={} reason={}", event.getTruckId().value(), event.getReason());
     }
 
     @Override
@@ -43,5 +47,6 @@ public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
                 "truck.position.updated.v1",
                 TruckPositionUpdatedMessage.from(event)
         );
+        log.debug("Published truck.position.updated.v1: truckId={}", event.getTruckId().value());
     }
 }
