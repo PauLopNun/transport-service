@@ -36,6 +36,8 @@ public class DispatchRequestedListener {
                 msg.requestedAt()
         );
 
+        log.info("Shipment requested: shipmentId={} from={} to={} items={}",
+                msg.shipmentId(), msg.originId(), msg.destinationId(), msg.items().size());
         try {
             assignTruck.execute(command);
         } catch (NoTruckAvailableException e) {
