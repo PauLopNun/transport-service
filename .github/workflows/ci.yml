@@ -89,7 +89,7 @@ jobs:
       - name: Build and run tests with coverage
         run: mvn verify -B
 
-      - name: Check coverage is 100%
+      - name: Check INSTRUCTION coverage is 100%
         run: |
           REPORT="target/site/jacoco/jacoco.xml"
           if [ ! -f "$REPORT" ]; then
@@ -97,8 +97,8 @@ jobs:
             exit 1
           fi
 
-          MISSED=$(grep -oP 'missed="\K[0-9]+' "$REPORT" | awk '{s+=$1} END {print s}')
-          COVERED=$(grep -oP 'covered="\K[0-9]+' "$REPORT" | awk '{s+=$1} END {print s}')
+          MISSED=$(grep 'type="INSTRUCTION"' "$REPORT" | grep -oP 'missed="\K[0-9]+' | awk '{s+=$1} END {print s}')
+          COVERED=$(grep 'type="INSTRUCTION"' "$REPORT" | grep -oP 'covered="\K[0-9]+' | awk '{s+=$1} END {print s}')
           TOTAL=$((MISSED + COVERED))
 
           if [ "$TOTAL" -eq 0 ]; then

@@ -148,15 +148,15 @@ class AssignTruckTest {
         TruckId inTransitTruckId = TruckId.generate();
         Truck inTransitWithCapacity = Truck.builder()
                 .truckId(inTransitTruckId).name("InTransit")
-                .location(new Location(1, 0)).status(TruckStatus.IN_TRANSIT)
+                .location(new Location(0, 0)).status(TruckStatus.IN_TRANSIT)
                 .capacity(10).currentLoad(2)
                 .deliveryIds(List.of(com.gft.transport.delivery.domain.DeliveryId.generate())).build();
 
         when(truckRepository.findAll()).thenReturn(List.of(availableButFull, inTransitWithCapacity));
         when(deliveryRepository.findByTruckId(inTransitTruckId))
-                .thenReturn(List.of(activeDelivery(inTransitTruckId, new Location(0, 5))));
+                .thenReturn(List.of(activeDelivery(inTransitTruckId, new Location(3, 3))));
 
-        assignTruck.execute(command(new Location(0, 0), new Location(5, 5), 5));
+        assignTruck.execute(command(new Location(1, 1), new Location(6, 6), 5));
 
         ArgumentCaptor<TruckStatusChangedEvent> captor = ArgumentCaptor.forClass(TruckStatusChangedEvent.class);
         verify(eventPublisher).publish(captor.capture());
