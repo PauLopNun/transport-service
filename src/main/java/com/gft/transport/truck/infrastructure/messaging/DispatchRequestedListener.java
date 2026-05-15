@@ -27,21 +27,21 @@ public class DispatchRequestedListener {
     @RabbitListener(queues = RabbitMQConfig.SHIPMENT_REQUESTED_QUEUE)
     public void onMessage(Message message) {
         ShipmentRequestedMessage msg = parseMessage(message);
-
-        AssignTruckCommand command = new AssignTruckCommand(
-                msg.shipmentId(),
-                locationResolver.resolve(msg.originId()),
-                locationResolver.resolve(msg.destinationId()),
-                msg.items(),
-                msg.requestedAt()
-        );
-
         log.info("Shipment requested: shipmentId={} from={} to={} items={}",
                 msg.shipmentId(), msg.originId(), msg.destinationId(), msg.items().size());
         try {
+            AssignTruckCommand command = new AssignTruckCommand(
+                    msg.shipmentId(),
+                    locationResolver.resolve(msg.originId()),
+                    locationResolver.resolve(msg.destinationId()),
+                    msg.items(),
+                    msg.requestedAt()
+            );
             assignTruck.execute(command);
         } catch (NoTruckAvailableException e) {
             log.warn("Shipment {} discarded: {}", msg.shipmentId(), e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("Shipment {} skipped — unknown location: {}", msg.shipmentId(), e.getMessage());
         }
     }
 
