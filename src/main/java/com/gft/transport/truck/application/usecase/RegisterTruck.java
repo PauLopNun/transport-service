@@ -11,10 +11,12 @@ import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RegisterTruck {
@@ -25,6 +27,8 @@ public class RegisterTruck {
     private final TruckEventPublisher eventPublisher;
 
     public TruckResponse execute(CreateTruckRequest request) {
+        log.info("Registering truck: name={} location=({},{}) capacity={}",
+                request.getName(), request.getX(), request.getY(), request.getCapacity());
         Truck truck = Truck.builder()
                 .truckId(TruckId.generate())
                 .name(request.getName())
@@ -36,6 +40,7 @@ public class RegisterTruck {
                 .build();
 
         truckRepository.save(truck);
+        log.info("Truck registered: truckId={} name={}", truck.getTruckId().value(), truck.getName());
 
         eventPublisher.publish(new TruckRegisteredEvent(
                 truck.getTruckId(),
