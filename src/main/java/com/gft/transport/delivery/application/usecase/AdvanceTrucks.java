@@ -14,11 +14,13 @@ import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdvanceTrucks {
@@ -29,9 +31,11 @@ public class AdvanceTrucks {
     private final DeliveryEventPublisher deliveryEventPublisher;
 
     public void execute(int daysAdvanced, int currentDay) {
-        truckRepository.findAll().stream()
+        List<Truck> inTransitTrucks = truckRepository.findAll().stream()
                 .filter(truck -> truck.getStatus() == TruckStatus.IN_TRANSIT)
-                .forEach(truck -> advanceTruck(truck, daysAdvanced, currentDay));
+                .toList();
+        log.info("Advancing {} truck(s): daysAdvanced={} currentDay={}", inTransitTrucks.size(), daysAdvanced, currentDay);
+        inTransitTrucks.forEach(truck -> advanceTruck(truck, daysAdvanced, currentDay));
     }
 
     private void advanceTruck(Truck truck, int daysAdvanced, int currentDay) {
@@ -60,6 +64,7 @@ public class AdvanceTrucks {
         Truck movedTruck = truck.toBuilder().location(nextPosition).build();
         truckRepository.save(movedTruck);
         truckEventPublisher.publish(new TruckPositionUpdatedEvent(movedTruck.getTruckId(), nextPosition));
+        log.debug("Truck {} moved to ({},{})", movedTruck.getTruckId().value(), nextPosition.x(), nextPosition.y());
         return movedTruck;
     }
 
@@ -76,6 +81,9 @@ public class AdvanceTrucks {
     private void completeDelivery(Delivery delivery, int currentDay) {
         Delivery completedDelivery = delivery.complete(currentDay);
         deliveryRepository.save(completedDelivery);
+        log.info("Delivery completed: shipmentId={} truckId={} location=({},{}) day={}",
+                completedDelivery.getShipmentId(), completedDelivery.getTruckId().value(),
+                completedDelivery.getDestination().x(), completedDelivery.getDestination().y(), currentDay);
         deliveryEventPublisher.publish(new DeliveryCompletedEvent(
                 completedDelivery.getShipmentId(),
                 completedDelivery.getTruckId(),
@@ -92,6 +100,8 @@ public class AdvanceTrucks {
                 .deliveryIds(List.of())
                 .build();
         truckRepository.save(availableTruck);
+        log.info("Truck returned to base: truckId={} location=({},{})",
+                availableTruck.getTruckId().value(), availableTruck.getLocation().x(), availableTruck.getLocation().y());
         truckEventPublisher.publish(new TruckStatusChangedEvent(
                 availableTruck.getTruckId(),
                 TruckStatus.IN_TRANSIT,

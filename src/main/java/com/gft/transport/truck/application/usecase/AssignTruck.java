@@ -14,12 +14,14 @@ import com.gft.transport.truck.domain.repository.TruckRepository;
 import com.gft.transport.truck.domain.service.DistanceCalculator;
 import com.gft.transport.truck.domain.service.OptimalTruckSelector;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AssignTruck {
@@ -62,6 +64,9 @@ public class AssignTruck {
 
         TruckStatus previousStatus = isAssigningToInTransitTruck ? TruckStatus.IN_TRANSIT : TruckStatus.AVAILABLE;
         String statusChangeReason = isAssigningToInTransitTruck ? "LOAD_UPDATED" : "DISPATCHED";
+        log.info("Truck assigned: truckId={} shipmentId={} reason={} load={}/{}",
+                dispatchedTruck.getTruckId().value(), command.shipmentId(), statusChangeReason,
+                dispatchedTruck.getCurrentLoad(), dispatchedTruck.getCapacity());
 
         eventPublisher.publish(new TruckStatusChangedEvent(
                 dispatchedTruck.getTruckId(),
