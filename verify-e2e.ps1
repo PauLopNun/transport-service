@@ -119,6 +119,8 @@ $truckRegisteredQueue = "e2e.$runId.truck.registered"
 $truckStatusQueue = "e2e.$runId.truck.status"
 $truckPositionQueue = "e2e.$runId.truck.position"
 $deliveryCompletedQueue = "e2e.$runId.delivery.completed"
+$truckDeletedQueue = "e2e.$runId.truck.deleted"
+$deleteShortDstId = "e2e-del-dst-$runId"
 
 if (-not $SkipPurge) {
     Step "0. CloudAMQP cleanup -- purge stale E2E messages"
@@ -142,6 +144,7 @@ DeclareCaptureQueue $truckRegisteredQueue "trucks.exchange" "truck.registered.v1
 DeclareCaptureQueue $truckStatusQueue "trucks.exchange" "truck.status.changed.v1"
 DeclareCaptureQueue $truckPositionQueue "trucks.exchange" "truck.position.updated.v1"
 DeclareCaptureQueue $deliveryCompletedQueue "shipments.exchange" "delivery.completed.v1"
+DeclareCaptureQueue $truckDeletedQueue "trucks.exchange" "truck.deleted.v1"
 Start-Sleep -Seconds 2
 
 try {
@@ -300,11 +303,98 @@ if ($deliveryMsgs -ge 1) {
     Fail "delivery.completed.v1 not captured on shipments.exchange"
 }
 
+# 10 - DELETE /trucks/{id} -- hard-delete AVAILABLE truck (204)
+Step "10. DELETE /trucks/{id} -- hard-delete AVAILABLE truck"
+$hardDeleteBody = @{ name = "E2E HardDelete $runId"; x = $origin.x; y = $origin.y; capacity = 10 } | ConvertTo-Json -Compress
+$hardDeleteTruck = Invoke-RestMethod -Uri "$ServiceUrl/trucks" -Method Post -ContentType "application/json" -Body $hardDeleteBody
+$hardDeleteId = $hardDeleteTruck.truckId
+$hdResponse = Invoke-WebRequest -Uri "$ServiceUrl/trucks/$hardDeleteId" -Method Delete -ErrorAction Stop
+if ($hdResponse.StatusCode -eq 204) {
+    Pass "DELETE /trucks/$hardDeleteId returned 204 No Content"
+} else {
+    Fail "Expected 204, got $($hdResponse.StatusCode)"
+}
+$hdGone = WaitUntil "truck $hardDeleteId removed" {
+    $all = Invoke-RestMethod -Uri "$ServiceUrl/trucks"
+    if (-not ($all | Where-Object { $_.truckId -eq $hardDeleteId })) { return $true }
+    return $null
+} 20
+if ($hdGone) { Pass "Truck removed from GET /trucks after hard delete" } else { Fail "Truck still present in GET /trucks after hard delete" }
+$deletedAfter10 = WaitForQueueMessages $truckDeletedQueue 1
+if ($deletedAfter10 -ge 1) {
+    Pass "truck.deleted.v1 published after hard delete of AVAILABLE truck"
+} else {
+    Fail "truck.deleted.v1 not captured after hard delete"
+}
+
+# 11 - DELETE /trucks/{id} -- soft-delete IN_TRANSIT truck (202)
+Step "11. DELETE /trucks/{id} -- soft-delete IN_TRANSIT truck"
+Publish "warehouses.exchange" "warehouse.registered.v1" @{ warehouseId = $origin.id; location = @{ x = $origin.x; y = $origin.y } } | Out-Null
+Publish "warehouses.exchange" "warehouse.registered.v1" @{ warehouseId = $deleteShortDstId; location = @{ x = 2; y = 0 } } | Out-Null
+Start-Sleep -Seconds 2
+$softDeleteBody = @{ name = "E2E SoftDelete $runId"; x = $origin.x; y = $origin.y; capacity = 10 } | ConvertTo-Json -Compress
+$softDeleteTruck = Invoke-RestMethod -Uri "$ServiceUrl/trucks" -Method Post -ContentType "application/json" -Body $softDeleteBody
+$softDeleteId = $softDeleteTruck.truckId
+Publish "shipments.exchange" "shipment.requested.v1" @{
+    shipmentId    = [Guid]::NewGuid().ToString()
+    originId      = $origin.id
+    destinationId = $deleteShortDstId
+    items         = @(@{ productId = [Guid]::NewGuid().ToString(); quantity = 5 })
+    requestedAt   = $simulationDay
+} | Out-Null
+$softInTransit = WaitForTruck $softDeleteId { param($t) $t.status -eq "IN_TRANSIT" } 20
+if ($softInTransit) { Pass "Soft-delete truck dispatched and IN_TRANSIT" } else { Fail "Soft-delete truck never became IN_TRANSIT" }
+$sdResponse = Invoke-WebRequest -Uri "$ServiceUrl/trucks/$softDeleteId" -Method Delete -ErrorAction Stop
+if ($sdResponse.StatusCode -eq 202) {
+    Pass "DELETE /trucks/$softDeleteId returned 202 Accepted (soft delete)"
+} else {
+    Fail "Expected 202, got $($sdResponse.StatusCode)"
+}
+$sdStillPresent = WaitUntil "truck still in fleet" {
+    $all = Invoke-RestMethod -Uri "$ServiceUrl/trucks"
+    if ($all | Where-Object { $_.truckId -eq $softDeleteId }) { return $true }
+    return $null
+} 5
+if ($sdStillPresent) { Pass "Truck still in GET /trucks after soft delete (pending deletion)" } else { Fail "Truck disappeared prematurely from GET /trucks after soft delete" }
+$deletedAfter11 = QueueMessages $truckDeletedQueue
+if ($deletedAfter11 -eq $deletedAfter10) {
+    Pass "No truck.deleted.v1 published after soft delete — event deferred until return to base"
+} else {
+    Fail "Unexpected truck.deleted.v1 event published immediately after soft delete"
+}
+
+# 12 - Soft-deleted truck hard-deleted when it returns to base
+Step "12. Advance time -- soft-deleted truck hard-deleted on delivery completion"
+for ($i = 1; $i -le 2; $i++) {
+    $simulationDay++
+    Publish "ms-time.exchange" "time.advanced.v1" @{
+        previousDay  = $simulationDay - 1
+        currentDay   = $simulationDay
+        daysAdvanced = 1
+        eventId      = [Guid]::NewGuid().ToString()
+        occurredAt   = (Get-Date -Format "o")
+    } | Out-Null
+    Start-Sleep -Milliseconds 500
+}
+$sdGone = WaitUntil "soft-deleted truck removed" {
+    $all = Invoke-RestMethod -Uri "$ServiceUrl/trucks"
+    if (-not ($all | Where-Object { $_.truckId -eq $softDeleteId })) { return $true }
+    return $null
+} 20
+if ($sdGone) { Pass "Soft-deleted truck removed from fleet after delivery completion" } else { Fail "Soft-deleted truck still present after returning to base" }
+$deletedAfter12 = WaitForQueueMessages $truckDeletedQueue ($deletedAfter10 + 1)
+if ($deletedAfter12 -gt $deletedAfter10) {
+    Pass "truck.deleted.v1 published after hard delete on return to base"
+} else {
+    Fail "truck.deleted.v1 not published after soft-deleted truck returned to base"
+}
+
 } finally {
     DeleteQueue $truckRegisteredQueue
     DeleteQueue $truckStatusQueue
     DeleteQueue $truckPositionQueue
     DeleteQueue $deliveryCompletedQueue
+    DeleteQueue $truckDeletedQueue
 }
 
 # Summary
