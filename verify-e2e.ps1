@@ -7,9 +7,9 @@
 #   AWS app:   .\verify-e2e.ps1 -Password "yourpass" -ServiceUrl "http://your-nlb-dns:8080"
 
 param(
-    [string]$RabbitHost = "seal.lmq.cloudamqp.com",
-    [string]$Vhost      = "ibvztclz",
-    [string]$User       = "ibvztclz",
+    [string]$RabbitHost = $(if ($env:RABBITMQ_HOST) { $env:RABBITMQ_HOST } else { "seal.lmq.cloudamqp.com" }),
+    [string]$Vhost      = $(if ($env:RABBITMQ_VIRTUAL_HOST) { $env:RABBITMQ_VIRTUAL_HOST } else { "ibvztclz" }),
+    [string]$User       = $(if ($env:RABBITMQ_USERNAME) { $env:RABBITMQ_USERNAME } else { "ibvztclz" }),
     [string]$Password   = $env:RABBITMQ_PASSWORD,
     [string]$ServiceUrl = "http://localhost:8080",
     [switch]$SkipPurge,
@@ -17,6 +17,9 @@ param(
 )
 
 if (-not $Password) { Write-Error "Provide -Password or set RABBITMQ_PASSWORD"; exit 1 }
+
+$ErrorActionPreference = "Stop"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $passed = 0
 $failed = 0
@@ -37,13 +40,13 @@ function Publish($exchange, $key, $payload) {
         payload          = ($payload | ConvertTo-Json -Compress)
         payload_encoding = "string"
     } | ConvertTo-Json -Compress
-    $r = Invoke-RestMethod -Uri "$exchB/$([Uri]::EscapeDataString($exchange))/publish" -Method Post -Headers $rmqH -Body $body
+    $r = Invoke-RestMethod -Uri "$exchB/$([Uri]::EscapeDataString($exchange))/publish" -Method Post -Headers $rmqH -Body $body -ErrorAction Stop
     return $r.routed -eq $true
 }
 
 function QueueMessages($name) {
     try {
-        return (Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Headers $rmqH).messages
+        return (Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Headers $rmqH -ErrorAction Stop).messages
     } catch {
         return -1
     }
@@ -54,21 +57,47 @@ function GetTruck($id) {
     return $all | Where-Object { $_.truckId -eq $id }
 }
 
+function WaitUntil($description, [scriptblock]$condition, [int]$TimeoutSeconds = 20, [int]$DelayMilliseconds = 500) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $result = & $condition
+        if ($result) { return $result }
+        Start-Sleep -Milliseconds $DelayMilliseconds
+    } while ((Get-Date) -lt $deadline)
+    return $null
+}
+
+function WaitForTruck($id, [scriptblock]$predicate, [int]$TimeoutSeconds = 20) {
+    return WaitUntil "truck $id" {
+        $truck = GetTruck $id
+        if ($truck -and (& $predicate $truck)) { return $truck }
+        return $null
+    } $TimeoutSeconds
+}
+
+function WaitForQueueMessages($name, [int]$MinimumMessages = 1, [int]$TimeoutSeconds = 20) {
+    return WaitUntil "queue $name" {
+        $messages = QueueMessages $name
+        if ($messages -ge $MinimumMessages) { return $messages }
+        return $null
+    } $TimeoutSeconds
+}
+
 function DeleteQueue($name) {
-    try { Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Delete -Headers $rmqH | Out-Null } catch {}
+    try { Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Delete -Headers $rmqH -ErrorAction Stop | Out-Null } catch {}
 }
 
 function DeclareCaptureQueue($name, $exchange, $routingKey) {
     DeleteQueue $name
     $qBody = @{ auto_delete = $false; durable = $false; arguments = @{} } | ConvertTo-Json -Compress
-    Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Put -Headers $rmqH -Body $qBody | Out-Null
+    Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))" -Method Put -Headers $rmqH -Body $qBody -ErrorAction Stop | Out-Null
     $bBody = @{ routing_key = $routingKey; arguments = @{} } | ConvertTo-Json -Compress
-    Invoke-RestMethod -Uri "https://$RabbitHost/api/bindings/$([Uri]::EscapeDataString($Vhost))/e/$([Uri]::EscapeDataString($exchange))/q/$([Uri]::EscapeDataString($name))" -Method Post -Headers $rmqH -Body $bBody | Out-Null
+    Invoke-RestMethod -Uri "https://$RabbitHost/api/bindings/$([Uri]::EscapeDataString($Vhost))/e/$([Uri]::EscapeDataString($exchange))/q/$([Uri]::EscapeDataString($name))" -Method Post -Headers $rmqH -Body $bBody -ErrorAction Stop | Out-Null
 }
 
 function PurgeQueue($name) {
     try {
-        Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))/contents" -Method Delete -Headers $rmqH | Out-Null
+        Invoke-RestMethod -Uri "$queueB/$([Uri]::EscapeDataString($name))/contents" -Method Delete -Headers $rmqH -ErrorAction Stop | Out-Null
         Write-Host "         Purged $name" -ForegroundColor DarkGray
     } catch {
         Write-Host "         Skipped $name (queue not found or no permission)" -ForegroundColor DarkGray
@@ -80,11 +109,12 @@ Write-Host "  transport-service  end-to-end verification" -ForegroundColor White
 Write-Host "============================================"  -ForegroundColor White
 
 $runId = ([Guid]::NewGuid().ToString("N")).Substring(0, 8)
-$origin   = @{ id = "e2e-warehouse-A-$runId"; x = 0; y = 0 }
-$dest     = @{ id = "e2e-warehouse-B-$runId"; x = 2; y = 0 }
+$coordSeed = Get-Random -Minimum 10000 -Maximum 900000
+$origin   = @{ id = "e2e-warehouse-A-$runId"; x = $coordSeed; y = $coordSeed + 10 }
+$dest     = @{ id = "e2e-warehouse-B-$runId"; x = $origin.x + 2; y = $origin.y }
 $distance = [Math]::Abs($dest.x - $origin.x) + [Math]::Abs($dest.y - $origin.y)
-$truckCapacity = 1000
-$shipmentQuantity = 999
+$truckCapacity = 100000000 + (Get-Random -Minimum 0 -Maximum 1000000)
+$shipmentQuantity = $truckCapacity
 $truckRegisteredQueue = "e2e.$runId.truck.registered"
 $truckStatusQueue = "e2e.$runId.truck.status"
 $truckPositionQueue = "e2e.$runId.truck.position"
@@ -121,8 +151,8 @@ $truckName = "E2E Truck $runId"
 $createTruckBody = @{ name = $truckName; x = $origin.x; y = $origin.y; capacity = $truckCapacity } | ConvertTo-Json -Compress
 $truck   = Invoke-RestMethod -Uri "$ServiceUrl/trucks" -Method Post -ContentType "application/json" -Body $createTruckBody
 $truckId = $truck.truckId
-if ($truck.status -eq "AVAILABLE" -and $truck.location.x -eq 0 -and $truck.location.y -eq 0) {
-    Pass "Truck created: id=$truckId  status=AVAILABLE  pos=(0,0)"
+if ($truck.status -eq "AVAILABLE" -and $truck.location.x -eq $origin.x -and $truck.location.y -eq $origin.y) {
+    Pass "Truck created: id=$truckId  status=AVAILABLE  pos=($($origin.x),$($origin.y))  capacity=$truckCapacity"
 } else {
     Fail "Unexpected response: $($truck | ConvertTo-Json -Compress)"
 }
@@ -138,8 +168,8 @@ if ($all | Where-Object { $_.truckId -eq $truckId }) {
 
 # 3 - truck.registered.v1 published
 Step "3. truck.registered.v1 -- event published to broker"
-Start-Sleep -Seconds 1
-if ((QueueMessages $truckRegisteredQueue) -ge 1) {
+$registeredMsgs = WaitForQueueMessages $truckRegisteredQueue 1
+if ($registeredMsgs -ge 1) {
     Pass "truck.registered.v1 published to trucks.exchange"
 } else {
     Fail "truck.registered.v1 not captured"
@@ -154,7 +184,7 @@ if ($r1 -and $r2) {
 } else {
     Fail "One or more warehouse messages unrouted"
 }
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 2
 
 # 5 - shipment.requested.v1 -> IN_TRANSIT
 Step "5. shipment.requested.v1 -- truck assigned, status IN_TRANSIT"
@@ -173,23 +203,22 @@ if ($routed) {
 } else {
     Fail "shipment.requested.v1 unrouted"
 }
-Start-Sleep -Seconds 2
-$assignedTruck = GetTruck $truckId
+$assignedTruck = WaitForTruck $truckId { param($t) $t.status -eq "IN_TRANSIT" } 30
 if ($assignedTruck) {
     $distance = [Math]::Abs($dest.x - $assignedTruck.location.x) + [Math]::Abs($dest.y - $assignedTruck.location.y)
-    if ($assignedTruck.status -eq "IN_TRANSIT") {
-        Pass "Truck assigned and IN_TRANSIT: id=$truckId  pos=($($assignedTruck.location.x),$($assignedTruck.location.y))  remaining=$distance steps"
-    } else {
-        Fail "Created truck did not change to IN_TRANSIT after shipment (status=$($assignedTruck.status))"
-    }
+    Pass "Truck assigned and IN_TRANSIT: id=$truckId  pos=($($assignedTruck.location.x),$($assignedTruck.location.y))  remaining=$distance steps"
 } else {
-    Fail "Created truck not found after shipment"
+    $currentTruck = GetTruck $truckId
+    if ($currentTruck) {
+        Fail "Created truck did not change to IN_TRANSIT after shipment (status=$($currentTruck.status))"
+    } else {
+        Fail "Created truck not found after shipment"
+    }
 }
 
 # 6 - truck.status.changed.v1 DISPATCHED
 Step "6. truck.status.changed.v1 (DISPATCHED) -- event published"
-Start-Sleep -Seconds 1
-$dispatchedMsgs = QueueMessages $truckStatusQueue
+$dispatchedMsgs = WaitForQueueMessages $truckStatusQueue 1
 if ($dispatchedMsgs -ge 1) {
     Pass "truck.status.changed.v1 (DISPATCHED) published  (msgs captured: $dispatchedMsgs)"
 } else {
@@ -211,20 +240,22 @@ for ($i = 1; $i -le $distance; $i++) {
         eventId      = [Guid]::NewGuid().ToString()
         occurredAt   = (Get-Date -Format "o")
     } | Out-Null
-    Start-Sleep -Milliseconds 50
-    $t        = GetTruck $truckId
     $arriving = ($i -eq $distance)
     if ($arriving) {
+        $t = WaitForTruck $truckId { param($truck) $truck.status -eq "AVAILABLE" -and $truck.location.x -eq $dest.x -and $truck.location.y -eq $dest.y } 30
         if ($t.status -eq "AVAILABLE" -and $t.location.x -eq $dest.x -and $t.location.y -eq $dest.y) {
             Pass "Tick $i (day $simulationDay) -- arrived at ($($dest.x),$($dest.y)), status back to AVAILABLE"
         } else {
+            $t = GetTruck $truckId
             Fail "Tick $i (day $simulationDay) -- expected AVAILABLE at ($($dest.x),$($dest.y)), got $($t.status) at ($($t.location.x),$($t.location.y))"
             $moveFailed = $true
         }
     } else {
+        $t = WaitForTruck $truckId { param($truck) $truck.status -eq "IN_TRANSIT" -and ($truck.location.x -ne $origin.x -or $truck.location.y -ne $origin.y) } 30
         if ($t.status -eq "IN_TRANSIT") {
             Write-Host "         Tick $i (day $simulationDay) -- IN_TRANSIT at ($($t.location.x),$($t.location.y))" -ForegroundColor DarkGray
         } else {
+            $t = GetTruck $truckId
             Fail "Tick $i (day $simulationDay) -- expected IN_TRANSIT, got $($t.status)"
             $moveFailed = $true
             break
@@ -234,7 +265,8 @@ for ($i = 1; $i -le $distance; $i++) {
 
 # 8 - truck.position.updated.v1 published
 Step "8. truck.position.updated.v1 -- position events published"
-if ((QueueMessages $truckPositionQueue) -ge 1) {
+$positionMsgs = WaitForQueueMessages $truckPositionQueue 1
+if ($positionMsgs -ge 1) {
     Pass "truck.position.updated.v1 published to trucks.exchange"
 } else {
     Fail "truck.position.updated.v1 not captured"
@@ -242,14 +274,13 @@ if ((QueueMessages $truckPositionQueue) -ge 1) {
 
 # 9 - delivery.completed.v1 + RETURNED_TO_BASE
 Step "9. delivery.completed.v1 + truck.status.changed.v1 (RETURNED_TO_BASE)"
-Start-Sleep -Seconds 1
-$finalMsgs = QueueMessages $truckStatusQueue
+$finalMsgs = WaitForQueueMessages $truckStatusQueue ($dispatchedMsgs + 1)
 if ($finalMsgs -gt $dispatchedMsgs) {
     Pass "truck.status.changed.v1 (RETURNED_TO_BASE) published  (total msgs captured: $finalMsgs)"
 } else {
     Fail "Expected second truck.status.changed.v1 for RETURNED_TO_BASE (after dispatch=$dispatchedMsgs after delivery=$finalMsgs)"
 }
-$deliveryMsgs = QueueMessages $deliveryCompletedQueue
+$deliveryMsgs = WaitForQueueMessages $deliveryCompletedQueue 1
 if ($deliveryMsgs -ge 1) {
     Pass "delivery.completed.v1 published to shipments.exchange"
 } else {
