@@ -45,6 +45,12 @@ spring:
     virtual-host: ${RABBITMQ_VIRTUAL_HOST:ibvztclz}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
+    template:
+      retry:
+        enabled: true
+        initial-interval: 500ms
+        max-attempts: 5
+        multiplier: 1.5
 
 transport:
   rabbitmq:
