@@ -115,6 +115,34 @@ class TruckRepositoryAdapterIT {
     }
 
     @Test
+    void deletesExistingTruckById() {
+        Truck truck = buildTruck(TruckStatus.AVAILABLE);
+        adapter.save(truck);
+
+        adapter.deleteById(truck.getTruckId());
+
+        assertThat(adapter.findById(truck.getTruckId())).isEmpty();
+    }
+
+    @Test
+    void savesAndRestoresPendingDeletion() {
+        Truck truck = Truck.builder()
+                .truckId(TruckId.generate())
+                .name("Truck-1")
+                .location(new Location(3, 7))
+                .status(TruckStatus.IN_TRANSIT)
+                .capacity(100)
+                .currentLoad(0)
+                .deliveryIds(List.of())
+                .pendingDeletion(true)
+                .build();
+        adapter.save(truck);
+
+        Truck found = adapter.findById(truck.getTruckId()).orElseThrow();
+        assertThat(found.isPendingDeletion()).isTrue();
+    }
+
+    @Test
     void savesAndRestoresDeliveryIds() {
         DeliveryId d1 = DeliveryId.generate();
         DeliveryId d2 = DeliveryId.generate();

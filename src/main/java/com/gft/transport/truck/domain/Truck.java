@@ -19,6 +19,8 @@ public class Truck {
     @Builder.Default
     private final int speed = 1;
     private final List<DeliveryId> deliveryIds;
+    @Builder.Default
+    private final boolean pendingDeletion = false;
 
     public int remainingCapacity() {
         return capacity - currentLoad;

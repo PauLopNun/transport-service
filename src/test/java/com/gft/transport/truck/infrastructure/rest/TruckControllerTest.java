@@ -3,9 +3,13 @@ package com.gft.transport.truck.infrastructure.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gft.transport.truck.application.dto.CreateTruckRequest;
 import com.gft.transport.truck.application.dto.TruckResponse;
+import com.gft.transport.truck.application.usecase.DeleteTruck;
+import com.gft.transport.truck.application.usecase.DeleteTruckResult;
 import com.gft.transport.truck.application.usecase.GetTrucks;
 import com.gft.transport.truck.application.usecase.RegisterTruck;
+import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.exception.TruckNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -18,6 +22,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,6 +42,9 @@ class TruckControllerTest {
 
     @MockitoBean
     private GetTrucks getTrucks;
+
+    @MockitoBean
+    private DeleteTruck deleteTruck;
 
     @Test
     void postTrucks_returns201WithTruckResponse() throws Exception {
@@ -91,5 +99,32 @@ class TruckControllerTest {
         mockMvc.perform(get("/trucks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void deleteTruck_returns204WhenTruckIsAvailableAndDeletedImmediately() throws Exception {
+        UUID truckId = UUID.randomUUID();
+        when(deleteTruck.execute(any())).thenReturn(DeleteTruckResult.DELETED);
+
+        mockMvc.perform(delete("/trucks/{id}", truckId))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteTruck_returns202WhenTruckIsInTransitAndDeletionIsScheduled() throws Exception {
+        UUID truckId = UUID.randomUUID();
+        when(deleteTruck.execute(any())).thenReturn(DeleteTruckResult.DELETION_SCHEDULED);
+
+        mockMvc.perform(delete("/trucks/{id}", truckId))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void deleteTruck_returns404WhenTruckDoesNotExist() throws Exception {
+        UUID truckId = UUID.randomUUID();
+        when(deleteTruck.execute(any())).thenThrow(new TruckNotFoundException(new TruckId(truckId)));
+
+        mockMvc.perform(delete("/trucks/{id}", truckId))
+                .andExpect(status().isNotFound());
     }
 }
