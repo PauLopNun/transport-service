@@ -94,6 +94,12 @@ public class AdvanceTrucks {
     }
 
     private Truck returnTruckToBase(Truck truck, int currentDay) {
+        if (truck.isPendingDeletion()) {
+            truckRepository.deleteById(truck.getTruckId());
+            log.info("Soft-deleted truck removed from fleet: truckId={}", truck.getTruckId().value());
+            return truck;
+        }
+
         Truck availableTruck = truck.toBuilder()
                 .status(TruckStatus.AVAILABLE)
                 .currentLoad(0)
