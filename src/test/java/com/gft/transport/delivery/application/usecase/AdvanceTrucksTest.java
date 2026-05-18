@@ -10,6 +10,7 @@ import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.domain.repository.TruckRepository;
@@ -310,6 +311,9 @@ class AdvanceTrucksTest {
 
         verify(truckRepository).deleteById(truck.getTruckId());
         verify(truckEventPublisher, never()).publish(any(TruckStatusChangedEvent.class));
+        ArgumentCaptor<TruckDeletedEvent> captor = ArgumentCaptor.forClass(TruckDeletedEvent.class);
+        verify(truckEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getTruckId()).isEqualTo(truck.getTruckId());
     }
 
     private Truck inTransitTruck(Location location) {

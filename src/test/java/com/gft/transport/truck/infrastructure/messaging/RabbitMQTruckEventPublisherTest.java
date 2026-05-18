@@ -3,10 +3,12 @@ package com.gft.transport.truck.infrastructure.messaging;
 import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
+import com.gft.transport.truck.infrastructure.messaging.dto.TruckDeletedMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckPositionUpdatedMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckRegisteredMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckStatusChangedMessage;
@@ -75,6 +77,22 @@ class RabbitMQTruckEventPublisherTest {
         assertThat(sent.getTruckId()).isEqualTo(truckId.value().toString());
         assertThat(sent.getLocation().getX()).isEqualTo(5);
         assertThat(sent.getLocation().getY()).isEqualTo(3);
+    }
+
+    @Test
+    void publishesDeletedEventToCorrectExchangeAndRoutingKey() {
+        TruckId truckId = TruckId.generate();
+        TruckDeletedEvent event = new TruckDeletedEvent(truckId);
+
+        publisher.publish(event);
+
+        ArgumentCaptor<TruckDeletedMessage> captor = ArgumentCaptor.forClass(TruckDeletedMessage.class);
+        verify(rabbitTemplate).convertAndSend(
+                org.mockito.ArgumentMatchers.eq(RabbitMQConfig.TRUCKS_EXCHANGE),
+                org.mockito.ArgumentMatchers.eq("truck.deleted.v1"),
+                captor.capture()
+        );
+        assertThat(captor.getValue().getTruckId()).isEqualTo(truckId.value().toString());
     }
 
     @Test
