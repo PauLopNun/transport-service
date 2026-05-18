@@ -48,6 +48,12 @@ public class TruckRepositoryAdapter implements TruckRepository {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public void deleteById(TruckId truckId) {
+        jpaRepository.deleteById(truckId.value());
+    }
+
     private TruckEntity toEntity(Truck truck) {
         return TruckEntity.builder()
                 .id(truck.getTruckId().value())
