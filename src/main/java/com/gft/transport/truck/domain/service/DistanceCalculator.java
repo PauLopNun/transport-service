@@ -9,14 +9,18 @@ public class DistanceCalculator {
     }
 
     public boolean isOnRoute(Location point, Location from, Location to) {
+        Location turningPoint = computeTurningPoint(from, to);
+        return isOnDiagonalLeg(point, from, turningPoint) || isOnStraightLeg(point, turningPoint, to);
+    }
+
+    private Location computeTurningPoint(Location from, Location to) {
         int horizontalDelta = to.x() - from.x();
         int verticalDelta = to.y() - from.y();
         int diagonalSteps = Math.min(Math.abs(horizontalDelta), Math.abs(verticalDelta));
-        Location turningPoint = new Location(
+        return new Location(
                 from.x() + Integer.signum(horizontalDelta) * diagonalSteps,
                 from.y() + Integer.signum(verticalDelta) * diagonalSteps
         );
-        return isOnDiagonalLeg(point, from, turningPoint) || isOnStraightLeg(point, turningPoint, to);
     }
 
     private boolean isOnDiagonalLeg(Location point, Location from, Location to) {
