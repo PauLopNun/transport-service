@@ -101,4 +101,12 @@
         <renameColumn tableName="delivery_items" oldColumnName="material_type" newColumnName="product_id" columnDataType="VARCHAR(255)"/>
     </changeSet>
 
+    <changeSet id="7" author="ivancarm">
+        <addColumn tableName="trucks">
+            <column name="pending_deletion" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

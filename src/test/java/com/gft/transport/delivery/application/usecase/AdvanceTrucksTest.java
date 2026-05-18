@@ -298,6 +298,20 @@ class AdvanceTrucksTest {
         verifyNoInteractions(truckEventPublisher, deliveryEventPublisher);
     }
 
+    @Test
+    void hardDeletesTruckOnReturnWhenPendingDeletion() {
+        Truck truck = pendingDeletionTruck(new Location(0, 0));
+        Delivery delivery = deliveryFor(truck, new Location(1, 0));
+
+        when(truckRepository.findAll()).thenReturn(List.of(truck));
+        when(deliveryRepository.findByTruckId(truck.getTruckId())).thenReturn(List.of(delivery));
+
+        advanceTrucks.execute(1, 2);
+
+        verify(truckRepository).deleteById(truck.getTruckId());
+        verify(truckEventPublisher, never()).publish(any(TruckStatusChangedEvent.class));
+    }
+
     private Truck inTransitTruck(Location location) {
         return Truck.builder()
                 .truckId(TruckId.generate())
@@ -307,6 +321,19 @@ class AdvanceTrucksTest {
                 .capacity(10)
                 .currentLoad(3)
                 .deliveryIds(List.of(DeliveryId.generate()))
+                .build();
+    }
+
+    private Truck pendingDeletionTruck(Location location) {
+        return Truck.builder()
+                .truckId(TruckId.generate())
+                .name("Truck")
+                .location(location)
+                .status(TruckStatus.IN_TRANSIT)
+                .capacity(10)
+                .currentLoad(3)
+                .deliveryIds(List.of(DeliveryId.generate()))
+                .pendingDeletion(true)
                 .build();
     }
 

@@ -11,4 +11,5 @@ public interface TruckRepository {
     Optional<Truck> findById(TruckId truckId);
     List<Truck> findAll();
     List<Truck> findAvailable();
+    void deleteById(TruckId truckId);
 }
