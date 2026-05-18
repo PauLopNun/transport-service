@@ -66,6 +66,7 @@ public class TruckRepositoryAdapter implements TruckRepository {
                 .deliveryIds(truck.getDeliveryIds().stream()
                         .map(DeliveryId::value)
                         .toList())
+                .pendingDeletion(truck.isPendingDeletion())
                 .build();
     }
 
@@ -80,6 +81,7 @@ public class TruckRepositoryAdapter implements TruckRepository {
                 .deliveryIds(entity.getDeliveryIds().stream()
                         .map(DeliveryId::new)
                         .toList())
+                .pendingDeletion(entity.isPendingDeletion())
                 .build();
     }
 }
