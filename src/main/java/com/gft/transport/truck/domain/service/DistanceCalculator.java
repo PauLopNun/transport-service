@@ -26,7 +26,6 @@ public class DistanceCalculator {
     private boolean isOnDiagonalLeg(Location point, Location from, Location to) {
         int horizontalDelta = to.x() - from.x();
         int verticalDelta = to.y() - from.y();
-        if ((horizontalDelta == 0) && (verticalDelta == 0)) return point.equals(from);
         int pointHorizontalDisplacement = point.x() - from.x();
         int pointVerticalDisplacement = point.y() - from.y();
         boolean displacementIsDiagonal = Math.abs(pointHorizontalDisplacement) == Math.abs(pointVerticalDisplacement);
