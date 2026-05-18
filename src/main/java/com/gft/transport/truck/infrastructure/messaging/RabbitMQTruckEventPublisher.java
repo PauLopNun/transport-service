@@ -1,10 +1,12 @@
 package com.gft.transport.truck.infrastructure.messaging;
 
 import com.gft.transport.truck.application.port.out.TruckEventPublisher;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
+import com.gft.transport.truck.infrastructure.messaging.dto.TruckDeletedMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckPositionUpdatedMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckRegisteredMessage;
 import com.gft.transport.truck.infrastructure.messaging.dto.TruckStatusChangedMessage;
@@ -48,5 +50,15 @@ public class RabbitMQTruckEventPublisher implements TruckEventPublisher {
                 TruckPositionUpdatedMessage.from(event)
         );
         log.debug("Published truck.position.updated.v1: truckId={}", event.getTruckId().value());
+    }
+
+    @Override
+    public void publish(TruckDeletedEvent event) {
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.TRUCKS_EXCHANGE,
+                "truck.deleted.v1",
+                TruckDeletedMessage.from(event)
+        );
+        log.debug("Published truck.deleted.v1: truckId={}", event.getTruckId().value());
     }
 }

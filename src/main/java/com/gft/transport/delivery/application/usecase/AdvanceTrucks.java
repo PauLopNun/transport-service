@@ -10,6 +10,7 @@ import com.gft.transport.truck.application.port.out.TruckEventPublisher;
 import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.event.TruckPositionUpdatedEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.domain.repository.TruckRepository;
@@ -96,6 +97,7 @@ public class AdvanceTrucks {
     private Truck returnTruckToBase(Truck truck, int currentDay) {
         if (truck.isPendingDeletion()) {
             truckRepository.deleteById(truck.getTruckId());
+            truckEventPublisher.publish(new TruckDeletedEvent(truck.getTruckId()));
             log.info("Soft-deleted truck removed from fleet: truckId={}", truck.getTruckId().value());
             return truck;
         }
