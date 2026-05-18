@@ -34,4 +34,7 @@ public class TruckEntity {
     @CollectionTable(name = "truck_deliveries", joinColumns = @JoinColumn(name = "truck_id"))
     @Column(name = "delivery_id")
     private List<UUID> deliveryIds;
+
+    @Column(name = "pending_deletion", nullable = false)
+    private boolean pendingDeletion;
 }

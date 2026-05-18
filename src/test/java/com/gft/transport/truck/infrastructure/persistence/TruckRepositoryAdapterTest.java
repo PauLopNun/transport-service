@@ -96,7 +96,41 @@ class TruckRepositoryAdapterTest {
                 .isEqualTo(TruckStatus.AVAILABLE);
     }
 
+    @Test
+    void deletesByTruckId() {
+        TruckId truckId = TruckId.generate();
+
+        adapter.deleteById(truckId);
+
+        verify(jpaRepository).deleteById(truckId.value());
+    }
+
+    @Test
+    void mapsOutgoingPendingDeletionToEntity() {
+        Truck truck = truck(TruckStatus.IN_TRANSIT, 4, List.of(), true);
+
+        adapter.save(truck);
+
+        ArgumentCaptor<TruckEntity> captor = ArgumentCaptor.forClass(TruckEntity.class);
+        verify(jpaRepository).save(captor.capture());
+        assertThat(captor.getValue().isPendingDeletion()).isTrue();
+    }
+
+    @Test
+    void mapsIncomingPendingDeletionFromEntity() {
+        TruckEntity entity = entity(TruckStatus.IN_TRANSIT, 4, List.of(), true);
+        when(jpaRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
+
+        Truck found = adapter.findById(new TruckId(entity.getId())).orElseThrow();
+
+        assertThat(found.isPendingDeletion()).isTrue();
+    }
+
     private Truck truck(TruckStatus status, int load, List<DeliveryId> deliveryIds) {
+        return truck(status, load, deliveryIds, false);
+    }
+
+    private Truck truck(TruckStatus status, int load, List<DeliveryId> deliveryIds, boolean pendingDeletion) {
         return Truck.builder()
                 .truckId(TruckId.generate())
                 .name("Truck-1")
@@ -105,11 +139,16 @@ class TruckRepositoryAdapterTest {
                 .capacity(10)
                 .currentLoad(load)
                 .deliveryIds(deliveryIds)
+                .pendingDeletion(pendingDeletion)
                 .build();
     }
 
     private TruckEntity entity(TruckStatus status, int load, List<DeliveryId> deliveryIds) {
-        Truck truck = truck(status, load, deliveryIds);
+        return entity(status, load, deliveryIds, false);
+    }
+
+    private TruckEntity entity(TruckStatus status, int load, List<DeliveryId> deliveryIds, boolean pendingDeletion) {
+        Truck truck = truck(status, load, deliveryIds, pendingDeletion);
         return TruckEntity.builder()
                 .id(truck.getTruckId().value())
                 .name(truck.getName())
@@ -119,6 +158,7 @@ class TruckRepositoryAdapterTest {
                 .capacity(truck.getCapacity())
                 .currentLoad(truck.getCurrentLoad())
                 .deliveryIds(deliveryIds.stream().map(DeliveryId::value).toList())
+                .pendingDeletion(pendingDeletion)
                 .build();
     }
 }
