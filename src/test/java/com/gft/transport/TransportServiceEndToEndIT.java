@@ -19,6 +19,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -46,6 +47,7 @@ class TransportServiceEndToEndIT {
     private static final String TRUCK_REGISTERED_CAPTURE   = "e2e.capture.truck.registered";
     private static final String TRUCK_STATUS_CAPTURE       = "e2e.capture.truck.status.changed";
     private static final String DELIVERY_COMPLETED_CAPTURE = "e2e.capture.delivery.completed";
+    private static final String TRUCK_DELETED_CAPTURE      = "e2e.capture.truck.deleted";
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
@@ -83,6 +85,7 @@ class TransportServiceEndToEndIT {
         declareCaptureQueue(TRUCK_REGISTERED_CAPTURE, RabbitMQConfig.TRUCKS_EXCHANGE, "truck.registered.v1");
         declareCaptureQueue(TRUCK_STATUS_CAPTURE, RabbitMQConfig.TRUCKS_EXCHANGE, "truck.status.changed.v1");
         declareCaptureQueue(DELIVERY_COMPLETED_CAPTURE, RabbitMQConfig.SHIPMENTS_EXCHANGE, "delivery.completed.v1");
+        declareCaptureQueue(TRUCK_DELETED_CAPTURE, RabbitMQConfig.TRUCKS_EXCHANGE, "truck.deleted.v1");
 
         purgeQueues(
                 RabbitMQConfig.SHIPMENT_REQUESTED_QUEUE,
@@ -90,7 +93,8 @@ class TransportServiceEndToEndIT {
                 RabbitMQConfig.TIME_ADVANCED_QUEUE,
                 TRUCK_REGISTERED_CAPTURE,
                 TRUCK_STATUS_CAPTURE,
-                DELIVERY_COMPLETED_CAPTURE
+                DELIVERY_COMPLETED_CAPTURE,
+                TRUCK_DELETED_CAPTURE
         );
     }
 
@@ -123,6 +127,98 @@ class TransportServiceEndToEndIT {
 
         assertDeliveryCompletedEventPublished(shipmentId, truckId, productId);
         assertTruckStatusEventPublished("RETURNED_TO_BASE");
+    }
+
+    @Test
+    void hardDeletesAvailableTruckImmediatelyAndPublishesDeletedEvent() {
+        UUID truckId = registerTruck("Truck-Delete-Available", 0, 0, 10);
+
+        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
+                "/trucks/" + truckId,
+                HttpMethod.DELETE,
+                null,
+                Void.class
+        );
+
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(truckJpaRepository.findById(truckId)).isEmpty()
+        );
+        assertTruckDeletedEventPublished(truckId);
+    }
+
+    @Test
+    void softDeletesInTransitTruckAndSchedulesDeletion() {
+        UUID truckId = registerTruck("Truck-Delete-InTransit", 0, 0, 10);
+
+        publishWarehouseRegistered("warehouse-soft-origin", 0, 0);
+        publishWarehouseRegistered("warehouse-soft-dest", 5, 0);
+        awaitWarehousesRegistered("warehouse-soft-origin", "warehouse-soft-dest");
+
+        publishShipmentRequested(UUID.randomUUID(), "warehouse-soft-origin", "warehouse-soft-dest",
+                UUID.randomUUID().toString(), 3, 1);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(truckJpaRepository.findById(truckId).orElseThrow().getStatus())
+                        .isEqualTo(TruckStatus.IN_TRANSIT)
+        );
+
+        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
+                "/trucks/" + truckId,
+                HttpMethod.DELETE,
+                null,
+                Void.class
+        );
+
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            var entity = truckJpaRepository.findById(truckId).orElseThrow();
+            assertThat(entity.isPendingDeletion()).isTrue();
+            assertThat(entity.getStatus()).isEqualTo(TruckStatus.IN_TRANSIT);
+        });
+        assertThat(rabbitTemplate.receive(TRUCK_DELETED_CAPTURE, 1000)).isNull();
+    }
+
+    @Test
+    void hardDeletesPendingDeletionTruckWhenItReturnsToBaseAndPublishesDeletedEvent() {
+        UUID truckId = registerTruck("Truck-Delete-OnReturn", 0, 0, 10);
+
+        publishWarehouseRegistered("warehouse-return-origin", 0, 0);
+        publishWarehouseRegistered("warehouse-return-dest", 2, 0);
+        awaitWarehousesRegistered("warehouse-return-origin", "warehouse-return-dest");
+
+        UUID shipmentId = UUID.randomUUID();
+        publishShipmentRequested(shipmentId, "warehouse-return-origin", "warehouse-return-dest",
+                UUID.randomUUID().toString(), 3, 1);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(truckJpaRepository.findById(truckId).orElseThrow().getStatus())
+                        .isEqualTo(TruckStatus.IN_TRANSIT)
+        );
+
+        restTemplate.exchange("/trucks/" + truckId, HttpMethod.DELETE, null, Void.class);
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(truckJpaRepository.findById(truckId).orElseThrow().isPendingDeletion()).isTrue()
+        );
+
+        publishTimeAdvanced(0, 1, 1);
+        publishTimeAdvanced(1, 2, 1);
+
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(truckJpaRepository.findById(truckId)).isEmpty()
+        );
+        assertTruckDeletedEventPublished(truckId);
+    }
+
+    private UUID registerTruck(String name, int x, int y, int capacity) {
+        ResponseEntity<TruckResponse> response = restTemplate.postForEntity(
+                "/trucks", new CreateTruckRequest(name, x, y, capacity), TruckResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return UUID.fromString(response.getBody().truckId());
+    }
+
+    private void assertTruckDeletedEventPublished(UUID truckId) {
+        Message event = rabbitTemplate.receive(TRUCK_DELETED_CAPTURE, 5000);
+        assertThat(event).isNotNull();
+        assertThat(body(event)).contains(truckId.toString());
     }
 
     private void assertTruckRegisteredEventPublished(UUID truckId) {
