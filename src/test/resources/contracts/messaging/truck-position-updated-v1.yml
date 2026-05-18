@@ -1,0 +1,13 @@
+description: "truck.position.updated.v1 — published to trucks.exchange on each movement step. High frequency, no business data"
+label: truck_position_updated_v1
+input:
+  triggeredBy: publishTruckPositionUpdated()
+outputMessage:
+  sentTo: trucks.exchange
+  body:
+    truckId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    location:
+      x: 5
+      y: 3
+  headers:
+    contentType: "application/json"

@@ -1,0 +1,16 @@
+description: "truck.registered.v1 — published to trucks.exchange when a new truck is registered (timestamp always 0, trucks register before simulation starts)"
+label: truck_registered_v1
+input:
+  triggeredBy: publishTruckRegistered()
+outputMessage:
+  sentTo: trucks.exchange
+  body:
+    truckId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    name: "Truck 01"
+    location:
+      x: 0
+      y: 0
+    capacity: 10
+    timestamp: 0
+  headers:
+    contentType: "application/json"

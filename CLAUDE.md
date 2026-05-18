@@ -63,21 +63,23 @@ Movement is diagonal (both axes simultaneously) until one coordinate matches des
 
 ### Epic 2 — Use Cases (Pau López) — COMPLETE
 - RegisterTruck use case + POST /trucks + GET /trucks
+- DeleteTruck use case + DELETE /trucks/{id} (204 immediate for AVAILABLE, 202 scheduled for IN_TRANSIT) + truck.deleted.v1 event
 - AssignTruck use case (DISPATCHED + LOAD_UPDATED for IN_TRANSIT fallback)
 - AdvanceTrucks use case (moves trucks, completes deliveries, RETURNED_TO_BASE)
 - DeliveryRepositoryAdapter + DeliveryEntity + Liquibase migrations
-- Output ports: TruckEventPublisher, DeliveryEventPublisher (interfaces only — implementations pending Epic 3)
+- Output ports: TruckEventPublisher, DeliveryEventPublisher (interfaces)
 - ~60 unit tests + 5 IT tests (DeliveryRepositoryAdapterIT)
 
-### Epic 3 — Messaging & Infrastructure (Pau Greus) — PENDING
-- TruckEventPublisher implementation (RabbitMQ)
-- DeliveryEventPublisher implementation (RabbitMQ)
+### Epic 3 — Messaging & Infrastructure (Pau Greus) — COMPLETE
+- TruckEventPublisher implementation (RabbitMQ) — publishes truck.registered, truck.status.changed, truck.position.updated, truck.deleted
+- DeliveryEventPublisher implementation (RabbitMQ) — publishes delivery.completed
 - TruckEntity + TruckJpaRepository + TruckRepositoryAdapter + Liquibase trucks table
 - DispatchRequestedListener (consumes `shipment.requested.v1` → calls AssignTruck)
 - TimeAdvancedListener (consumes `time.advanced.v1` → calls AdvanceTrucks)
+- WarehouseRegisteredListener (caches warehouse coordinates for location resolution)
 - RabbitMQConfig (exchanges, queues, bindings)
-- application.yml (DB + RabbitMQ config)
-- DispatchRequestedListenerIT + TimeAdvancedListenerIT (Testcontainers)
+- application.yml + application-dev.properties (DB + RabbitMQ config)
+- Full IT suite: DispatchRequestedListenerIT, TimeAdvancedListenerIT, TruckEventPublisherIT, TruckRepositoryAdapterIT, TransportServiceEndToEndIT
 
 ---
 
@@ -106,8 +108,15 @@ High frequency — no business data, no timestamp.
 
 **delivery.completed.v1** → Warehouses, Reporting, Map UI
 ```json
-{ "shipmentId": "uuid", "truckId": "uuid", "items": [{"materialType":"wood","quantity":6}], "location": {"x":8,"y":2}, "completedAt": 5 }
+{ "shipmentId": "uuid", "truckId": "uuid", "items": [{"productId":"wood","quantity":6}], "location": {"x":8,"y":2}, "completedAt": 5 }
 ```
+Note: field is `productId` in the current implementation (not `materialType` — pending alignment with warehouse/factory teams).
+
+**truck.deleted.v1** → Reporting, Map UI
+```json
+{ "truckId": "uuid" }
+```
+Published immediately for AVAILABLE trucks. Not published for IN_TRANSIT trucks until they return to base.
 
 ### CONSUMED by transport-service
 
@@ -133,6 +142,7 @@ Confirm with Rubén which fields are safe to consume.
 |---|---|---|
 | POST | /trucks | Register new truck. Body: CreateTruckRequest |
 | GET | /trucks | Get all trucks with current location and status |
+| DELETE | /trucks/{id} | Delete truck. 204 if AVAILABLE (immediate), 202 if IN_TRANSIT (scheduled on return), 404 if not found. Publishes truck.deleted.v1 |
 
 Full spec: `src/main/resources/openapi.yaml` · Swagger UI: `http://localhost:8080/swagger-ui.html`
 
@@ -155,6 +165,31 @@ Full spec: `src/main/resources/openapi.yaml` · Swagger UI: `http://localhost:80
 - [ ] Reporting (Pedro) expects `truck.assigned.v1` and `delivery.created.v1` — resolved: `truck.assigned.v1` maps to `truck.status.changed.v1 reason=DISPATCHED` (same event, different name in his doc). `delivery.created.v1` is a warehouse responsibility (`shipment.requested.v1`), not transport's. Pedro needs to update his listeners accordingly.
 - [ ] `DELIVERED` TruckStatus value exists in enum but is not used in any flow. Remove or keep?
 - [ ] `reasonCode` (typed enum for BREAKDOWN phase) — deferred to post-MVP
+
+---
+
+## Contract testing (Spring Cloud Contract)
+
+Contract tests lock the shape of every event transport-service publishes. If the JSON structure changes, the test fails — preventing silent breaking changes for consumers (Reporting, Map UI, Warehouses).
+
+**Library:** `spring-cloud-starter-contract-verifier` (Spring Cloud 2024.0.1)
+
+**How it works:**
+1. Contract files in `src/test/resources/contracts/messaging/` define the expected JSON for each published event.
+2. The `spring-cloud-contract-maven-plugin` generates a test class (`MessagingTest`) during `generate-test-sources`.
+3. The generated class extends `MessagingContractBase`, which starts the full Spring context (Testcontainers), calls the real publisher, and verifies the intercepted message matches the contract.
+4. The plugin can also package stubs into a JAR (`mvn install`) that consumers can reference in their tests.
+
+**Contract files (one per published event):**
+| File | Event | Exchange |
+|---|---|---|
+| `truck-registered-v1.yml` | truck.registered.v1 | trucks.exchange |
+| `truck-status-changed-v1.yml` | truck.status.changed.v1 | trucks.exchange |
+| `truck-position-updated-v1.yml` | truck.position.updated.v1 | trucks.exchange |
+| `truck-deleted-v1.yml` | truck.deleted.v1 | trucks.exchange |
+| `delivery-completed-v1.yml` | delivery.completed.v1 | shipments.exchange |
+
+**Running contract tests:** Requires Docker (same as other IT tests). Run with `-Pdocker-it` profile.
 
 ---
 

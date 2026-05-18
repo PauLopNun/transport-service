@@ -1,0 +1,19 @@
+description: "truck.status.changed.v1 — published to trucks.exchange on status transitions. Reasons: TRUCK_REGISTERED (oldStatus null), DISPATCHED, LOAD_UPDATED, RETURNED_TO_BASE"
+label: truck_status_changed_v1
+input:
+  triggeredBy: publishTruckStatusChanged()
+outputMessage:
+  sentTo: trucks.exchange
+  body:
+    truckId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    oldStatus: "AVAILABLE"
+    newStatus: "IN_TRANSIT"
+    position:
+      x: 0
+      y: 0
+    currentLoad: 6
+    capacity: 10
+    timestamp: 3
+    reason: "DISPATCHED"
+  headers:
+    contentType: "application/json"
