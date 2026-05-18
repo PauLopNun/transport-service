@@ -87,6 +87,21 @@ if ($LASTEXITCODE -ne 0) {
     throw "Docker login to ECR failed with exit code $LASTEXITCODE."
 }
 
+Write-Host "==> Ensuring base image exists in ECR" -ForegroundColor Cyan
+$baseTag = "java21-base"
+$baseImage = "${AccountId}.dkr.ecr.${Region}.amazonaws.com/${RepositoryName}:${baseTag}"
+$baseTagExists = $false
+try {
+    & $aws ecr describe-images --repository-name $RepositoryName --region $Region --image-ids imageTag=$baseTag | Out-Null
+    $baseTagExists = $true
+} catch { }
+if (-not $baseTagExists) {
+    Write-Host "Base image not found in ECR — pushing audit-service:local as $baseTag" -ForegroundColor Yellow
+    & $docker tag audit-service:local $baseImage
+    Invoke-Native -Step "Base image push" -Command { & $docker push $baseImage }
+    Write-Host "Base image pushed successfully." -ForegroundColor Green
+}
+
 Write-Host "==> Building JAR locally" -ForegroundColor Cyan
 $mvnw = Join-Path $PSScriptRoot "mvnw.cmd"
 Invoke-Native -Step "Maven package" -Command {
