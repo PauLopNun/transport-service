@@ -9,27 +9,30 @@ public class DistanceCalculator {
     }
 
     public boolean isOnRoute(Location point, Location from, Location to) {
-        int dx = to.x() - from.x();
-        int dy = to.y() - from.y();
-        int diagonalSteps = Math.min(Math.abs(dx), Math.abs(dy));
-        Location turningPoint = new Location(
-                from.x() + Integer.signum(dx) * diagonalSteps,
-                from.y() + Integer.signum(dy) * diagonalSteps
-        );
+        Location turningPoint = computeTurningPoint(from, to);
         return isOnDiagonalLeg(point, from, turningPoint) || isOnStraightLeg(point, turningPoint, to);
     }
 
+    private Location computeTurningPoint(Location from, Location to) {
+        int horizontalDelta = to.x() - from.x();
+        int verticalDelta = to.y() - from.y();
+        int diagonalSteps = Math.min(Math.abs(horizontalDelta), Math.abs(verticalDelta));
+        return new Location(
+                from.x() + Integer.signum(horizontalDelta) * diagonalSteps,
+                from.y() + Integer.signum(verticalDelta) * diagonalSteps
+        );
+    }
+
     private boolean isOnDiagonalLeg(Location point, Location from, Location to) {
-        int dx = to.x() - from.x();
-        int dy = to.y() - from.y();
-        if ((dx == 0) & (dy == 0)) return point.equals(from);
-        int dpx = point.x() - from.x();
-        int dpy = point.y() - from.y();
-        if (Math.abs(dpx) != Math.abs(dpy)) return false;
-        if (Math.abs(dpx) > Math.abs(dx)) return false;
-        if (dpx != 0 && Integer.signum(dpx) != Integer.signum(dx)) return false;
-        if (dpy != 0 && Integer.signum(dpy) != Integer.signum(dy)) return false;
-        return true;
+        int horizontalDelta = to.x() - from.x();
+        int verticalDelta = to.y() - from.y();
+        int pointHorizontalDisplacement = point.x() - from.x();
+        int pointVerticalDisplacement = point.y() - from.y();
+        boolean displacementIsDiagonal = Math.abs(pointHorizontalDisplacement) == Math.abs(pointVerticalDisplacement);
+        boolean withinRange = Math.abs(pointHorizontalDisplacement) <= Math.abs(horizontalDelta);
+        boolean horizontalDirectionMatches = pointHorizontalDisplacement == 0 || Integer.signum(pointHorizontalDisplacement) == Integer.signum(horizontalDelta);
+        boolean verticalDirectionMatches = pointVerticalDisplacement == 0 || Integer.signum(pointVerticalDisplacement) == Integer.signum(verticalDelta);
+        return displacementIsDiagonal && withinRange && horizontalDirectionMatches && verticalDirectionMatches;
     }
 
     private boolean isOnStraightLeg(Location point, Location from, Location to) {
