@@ -29,11 +29,11 @@ public class DistanceCalculator {
         if ((horizontalDelta == 0) && (verticalDelta == 0)) return point.equals(from);
         int pointHorizontalDisplacement = point.x() - from.x();
         int pointVerticalDisplacement = point.y() - from.y();
-        if (Math.abs(pointHorizontalDisplacement) != Math.abs(pointVerticalDisplacement)) return false;
-        if (Math.abs(pointHorizontalDisplacement) > Math.abs(horizontalDelta)) return false;
-        if (pointHorizontalDisplacement != 0 && Integer.signum(pointHorizontalDisplacement) != Integer.signum(horizontalDelta)) return false;
-        if (pointVerticalDisplacement != 0 && Integer.signum(pointVerticalDisplacement) != Integer.signum(verticalDelta)) return false;
-        return true;
+        boolean displacementIsDiagonal = Math.abs(pointHorizontalDisplacement) == Math.abs(pointVerticalDisplacement);
+        boolean withinRange = Math.abs(pointHorizontalDisplacement) <= Math.abs(horizontalDelta);
+        boolean horizontalDirectionMatches = pointHorizontalDisplacement == 0 || Integer.signum(pointHorizontalDisplacement) == Integer.signum(horizontalDelta);
+        boolean verticalDirectionMatches = pointVerticalDisplacement == 0 || Integer.signum(pointVerticalDisplacement) == Integer.signum(verticalDelta);
+        return displacementIsDiagonal && withinRange && horizontalDirectionMatches && verticalDirectionMatches;
     }
 
     private boolean isOnStraightLeg(Location point, Location from, Location to) {
