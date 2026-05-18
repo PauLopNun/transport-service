@@ -61,6 +61,11 @@ spring:
     password: transport
 
 ---
+logging:
+  level:
+    root: WARN
+    com.gft.transport: INFO
+
 spring:
   config:
     activate:
