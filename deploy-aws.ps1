@@ -10,6 +10,16 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$env:DOCKER_HOST = ""
+$env:DOCKER_CONFIG = "$env:USERPROFILE\.docker"
+
+$envFile = Join-Path $PSScriptRoot ".env"
+if (Test-Path $envFile) {
+    Get-Content $envFile | Where-Object { $_ -match "^\s*[^#]" -and $_ -match "=" } | ForEach-Object {
+        $key, $value = $_ -split "=", 2
+        [System.Environment]::SetEnvironmentVariable($key.Trim(), $value.Trim(), "Process")
+    }
+}
 
 function Resolve-CommandPath {
     param(
@@ -67,6 +77,7 @@ Invoke-Native -Step "AWS identity check" -Command {
 }
 
 Write-Host "==> Logging in to ECR: $image" -ForegroundColor Cyan
+& $docker logout "${AccountId}.dkr.ecr.${Region}.amazonaws.com" 2>$null
 $ecrPassword = & $aws ecr get-login-password --region $Region
 if ($LASTEXITCODE -ne 0) {
     throw "ECR login password request failed with exit code $LASTEXITCODE."
@@ -76,9 +87,30 @@ if ($LASTEXITCODE -ne 0) {
     throw "Docker login to ECR failed with exit code $LASTEXITCODE."
 }
 
+Write-Host "==> Ensuring base image exists in ECR" -ForegroundColor Cyan
+$baseTag = "java21-base"
+$baseImage = "${AccountId}.dkr.ecr.${Region}.amazonaws.com/${RepositoryName}:${baseTag}"
+$baseTagExists = $false
+try {
+    & $aws ecr describe-images --repository-name $RepositoryName --region $Region --image-ids imageTag=$baseTag | Out-Null
+    $baseTagExists = $true
+} catch { }
+if (-not $baseTagExists) {
+    Write-Host "Base image not found in ECR — pushing audit-service:local as $baseTag" -ForegroundColor Yellow
+    & $docker tag audit-service:local $baseImage
+    Invoke-Native -Step "Base image push" -Command { & $docker push $baseImage }
+    Write-Host "Base image pushed successfully." -ForegroundColor Green
+}
+
+Write-Host "==> Building JAR locally" -ForegroundColor Cyan
+$mvnw = Join-Path $PSScriptRoot "mvnw.cmd"
+Invoke-Native -Step "Maven package" -Command {
+    & $mvnw -q -DskipTests package
+}
+
 Write-Host "==> Building Docker image" -ForegroundColor Cyan
 Invoke-Native -Step "Docker image build" -Command {
-    & $docker build -t "${RepositoryName}:${ImageTag}" .
+    & $docker build --provenance=false -t "${RepositoryName}:${ImageTag}" .
 }
 
 Write-Host "==> Tagging Docker image" -ForegroundColor Cyan
@@ -86,9 +118,12 @@ Invoke-Native -Step "Docker image tag" -Command {
     & $docker tag "${RepositoryName}:${ImageTag}" $image
 }
 
-Write-Host "==> Pushing Docker image" -ForegroundColor Cyan
-Invoke-Native -Step "Docker image push" -Command {
-    & $docker push $image
+Write-Host "==> Pushing Docker image (best-effort)" -ForegroundColor Cyan
+$ecrPasswordForPush = & $aws ecr get-login-password --region $Region
+$ecrPasswordForPush | & $docker login --username AWS --password-stdin "${AccountId}.dkr.ecr.${Region}.amazonaws.com"
+& $docker push $image
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "WARNING: image push failed — ECS will redeploy with the current ECR image." -ForegroundColor Yellow
 }
 
 Write-Host "==> Forcing ECS deployment" -ForegroundColor Cyan

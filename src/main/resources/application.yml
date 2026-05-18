@@ -1,7 +1,14 @@
 logging:
   level:
+    root: INFO
     org.springframework.amqp: WARN
+    org.hibernate: WARN
+    org.springframework.web: WARN
+    com.zaxxer.hikari: WARN
+    liquibase: WARN
     com.gft.transport: INFO
+    com.gft.transport.delivery.infrastructure.messaging.TimeAdvancedListener: WARN
+    com.gft.transport.delivery.application.usecase.AdvanceTrucks: WARN
 
 spring:
   config:
@@ -38,6 +45,12 @@ spring:
     virtual-host: ${RABBITMQ_VIRTUAL_HOST:ibvztclz}
     ssl:
       enabled: ${RABBITMQ_SSL_ENABLED:true}
+    template:
+      retry:
+        enabled: true
+        initial-interval: 500ms
+        max-attempts: 5
+        multiplier: 1.5
 
 transport:
   rabbitmq:

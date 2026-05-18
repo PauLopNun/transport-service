@@ -12,6 +12,7 @@ param(
     [string]$User       = $(if ($env:RABBITMQ_USERNAME) { $env:RABBITMQ_USERNAME } else { "ibvztclz" }),
     [string]$Password   = $env:RABBITMQ_PASSWORD,
     [string]$ServiceUrl = "http://localhost:8080",
+    [int]$TickDelaySeconds = 1,
     [switch]$SkipPurge,
     [switch]$PurgeMapQueues
 )
@@ -109,10 +110,9 @@ Write-Host "  transport-service  end-to-end verification" -ForegroundColor White
 Write-Host "============================================"  -ForegroundColor White
 
 $runId = ([Guid]::NewGuid().ToString("N")).Substring(0, 8)
-$coordSeed = Get-Random -Minimum 10000 -Maximum 900000
-$origin   = @{ id = "e2e-warehouse-A-$runId"; x = $coordSeed; y = $coordSeed + 10 }
-$dest     = @{ id = "e2e-warehouse-B-$runId"; x = $origin.x + 2; y = $origin.y }
-$distance = [Math]::Abs($dest.x - $origin.x) + [Math]::Abs($dest.y - $origin.y)
+$origin   = @{ id = "e2e-warehouse-A-$runId"; x = 0; y = 0 }
+$dest     = @{ id = "e2e-warehouse-B-$runId"; x = 10; y = 7 }
+$distance = [Math]::Max([Math]::Abs($dest.x - $origin.x), [Math]::Abs($dest.y - $origin.y))
 $truckCapacity = 100000000 + (Get-Random -Minimum 0 -Maximum 1000000)
 $shipmentQuantity = $truckCapacity
 $truckRegisteredQueue = "e2e.$runId.truck.registered"
@@ -142,8 +142,20 @@ DeclareCaptureQueue $truckRegisteredQueue "trucks.exchange" "truck.registered.v1
 DeclareCaptureQueue $truckStatusQueue "trucks.exchange" "truck.status.changed.v1"
 DeclareCaptureQueue $truckPositionQueue "trucks.exchange" "truck.position.updated.v1"
 DeclareCaptureQueue $deliveryCompletedQueue "shipments.exchange" "delivery.completed.v1"
+Start-Sleep -Seconds 2
 
 try {
+
+# 0b - Wait for service to be ready
+Step "0b. Waiting for service to be ready"
+$ready = WaitUntil "service health" {
+    try {
+        $h = Invoke-RestMethod -Uri "$ServiceUrl/actuator/health" -ErrorAction Stop
+        if ($h.status -eq "UP") { return $true }
+    } catch {}
+    return $null
+} 60
+if ($ready) { Pass "Service is UP" } else { Fail "Service did not become ready in time" }
 
 # 1 - POST /trucks
 Step "1. POST /trucks -- register truck"
@@ -205,7 +217,7 @@ if ($routed) {
 }
 $assignedTruck = WaitForTruck $truckId { param($t) $t.status -eq "IN_TRANSIT" } 30
 if ($assignedTruck) {
-    $distance = [Math]::Abs($dest.x - $assignedTruck.location.x) + [Math]::Abs($dest.y - $assignedTruck.location.y)
+    $distance = [Math]::Max([Math]::Abs($dest.x - $assignedTruck.location.x), [Math]::Abs($dest.y - $assignedTruck.location.y))
     Pass "Truck assigned and IN_TRANSIT: id=$truckId  pos=($($assignedTruck.location.x),$($assignedTruck.location.y))  remaining=$distance steps"
 } else {
     $currentTruck = GetTruck $truckId
@@ -254,6 +266,7 @@ for ($i = 1; $i -le $distance; $i++) {
         $t = WaitForTruck $truckId { param($truck) $truck.status -eq "IN_TRANSIT" -and ($truck.location.x -ne $origin.x -or $truck.location.y -ne $origin.y) } 30
         if ($t.status -eq "IN_TRANSIT") {
             Write-Host "         Tick $i (day $simulationDay) -- IN_TRANSIT at ($($t.location.x),$($t.location.y))" -ForegroundColor DarkGray
+            if ($TickDelaySeconds -gt 0) { Start-Sleep -Seconds $TickDelaySeconds }
         } else {
             $t = GetTruck $truckId
             Fail "Tick $i (day $simulationDay) -- expected IN_TRANSIT, got $($t.status)"
