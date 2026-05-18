@@ -3,6 +3,7 @@ package com.gft.transport.truck.infrastructure.messaging;
 import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.event.TruckRegisteredEvent;
 import com.gft.transport.truck.domain.event.TruckStatusChangedEvent;
 import com.gft.transport.truck.infrastructure.config.RabbitMQConfig;
@@ -84,6 +85,16 @@ class TruckEventPublisherIT {
                 "truck.registered.v1",
                 null
         ));
+
+        Queue deletedQueue = new Queue("test.truck.deleted", false, false, true);
+        rabbitAdmin.declareQueue(deletedQueue);
+        rabbitAdmin.declareBinding(new Binding(
+                "test.truck.deleted",
+                Binding.DestinationType.QUEUE,
+                RabbitMQConfig.TRUCKS_EXCHANGE,
+                "truck.deleted.v1",
+                null
+        ));
     }
 
     @Test
@@ -107,6 +118,19 @@ class TruckEventPublisherIT {
                 .contains("DISPATCHED")
                 .contains("IN_TRANSIT")
                 .contains("AVAILABLE");
+    }
+
+    @Test
+    void publishesDeletedEventAsJsonToRabbitMQ() {
+        TruckId truckId = TruckId.generate();
+        TruckDeletedEvent event = new TruckDeletedEvent(truckId);
+
+        publisher.publish(event);
+
+        Message message = rabbitTemplate.receive("test.truck.deleted", 3000);
+        assertThat(message).isNotNull();
+        String body = new String(message.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(body).contains(truckId.value().toString());
     }
 
     @Test

@@ -4,6 +4,8 @@ import com.gft.transport.truck.domain.Location;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.application.port.out.TruckEventPublisher;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.exception.TruckNotFoundException;
 import com.gft.transport.truck.domain.repository.TruckRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,11 +28,14 @@ class DeleteTruckTest {
     @Mock
     private TruckRepository truckRepository;
 
+    @Mock
+    private TruckEventPublisher truckEventPublisher;
+
     private DeleteTruck deleteTruck;
 
     @BeforeEach
     void setUp() {
-        deleteTruck = new DeleteTruck(truckRepository);
+        deleteTruck = new DeleteTruck(truckRepository, truckEventPublisher);
     }
 
     @Test
@@ -43,6 +48,7 @@ class DeleteTruckTest {
 
         verify(truckRepository, never()).deleteById(any());
         verify(truckRepository, never()).save(any());
+        verify(truckEventPublisher, never()).publish(any(TruckDeletedEvent.class));
     }
 
     @Test
@@ -55,6 +61,9 @@ class DeleteTruckTest {
         assertThat(result).isEqualTo(DeleteTruckResult.DELETED);
         verify(truckRepository).deleteById(truck.getTruckId());
         verify(truckRepository, never()).save(any());
+        ArgumentCaptor<TruckDeletedEvent> captor = ArgumentCaptor.forClass(TruckDeletedEvent.class);
+        verify(truckEventPublisher).publish(captor.capture());
+        assertThat(captor.getValue().getTruckId()).isEqualTo(truck.getTruckId());
     }
 
     @Test
@@ -69,6 +78,7 @@ class DeleteTruckTest {
         verify(truckRepository).save(captor.capture());
         assertThat(captor.getValue().isPendingDeletion()).isTrue();
         verify(truckRepository, never()).deleteById(any());
+        verify(truckEventPublisher, never()).publish(any(TruckDeletedEvent.class));
     }
 
     @Test
@@ -80,6 +90,7 @@ class DeleteTruckTest {
 
         assertThat(result).isEqualTo(DeleteTruckResult.DELETION_SCHEDULED);
         verify(truckRepository, never()).deleteById(any());
+        verify(truckEventPublisher, never()).publish(any(TruckDeletedEvent.class));
     }
 
     private Truck truck(TruckStatus status, boolean pendingDeletion) {

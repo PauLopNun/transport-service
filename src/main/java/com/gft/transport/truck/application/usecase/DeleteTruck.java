@@ -1,8 +1,10 @@
 package com.gft.transport.truck.application.usecase;
 
+import com.gft.transport.truck.application.port.out.TruckEventPublisher;
 import com.gft.transport.truck.domain.Truck;
 import com.gft.transport.truck.domain.TruckId;
 import com.gft.transport.truck.domain.TruckStatus;
+import com.gft.transport.truck.domain.event.TruckDeletedEvent;
 import com.gft.transport.truck.domain.exception.TruckNotFoundException;
 import com.gft.transport.truck.domain.repository.TruckRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class DeleteTruck {
 
     private final TruckRepository truckRepository;
+    private final TruckEventPublisher truckEventPublisher;
 
     public DeleteTruckResult execute(TruckId truckId) {
         Truck truck = truckRepository.findById(truckId)
@@ -20,6 +23,7 @@ public class DeleteTruck {
 
         if (truck.getStatus() == TruckStatus.AVAILABLE) {
             truckRepository.deleteById(truckId);
+            truckEventPublisher.publish(new TruckDeletedEvent(truckId));
             return DeleteTruckResult.DELETED;
         }
 
