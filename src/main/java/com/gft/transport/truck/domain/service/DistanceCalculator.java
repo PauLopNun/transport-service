@@ -9,26 +9,26 @@ public class DistanceCalculator {
     }
 
     public boolean isOnRoute(Location point, Location from, Location to) {
-        int dx = to.x() - from.x();
-        int dy = to.y() - from.y();
-        int diagonalSteps = Math.min(Math.abs(dx), Math.abs(dy));
+        int horizontalDelta = to.x() - from.x();
+        int verticalDelta = to.y() - from.y();
+        int diagonalSteps = Math.min(Math.abs(horizontalDelta), Math.abs(verticalDelta));
         Location turningPoint = new Location(
-                from.x() + Integer.signum(dx) * diagonalSteps,
-                from.y() + Integer.signum(dy) * diagonalSteps
+                from.x() + Integer.signum(horizontalDelta) * diagonalSteps,
+                from.y() + Integer.signum(verticalDelta) * diagonalSteps
         );
         return isOnDiagonalLeg(point, from, turningPoint) || isOnStraightLeg(point, turningPoint, to);
     }
 
     private boolean isOnDiagonalLeg(Location point, Location from, Location to) {
-        int dx = to.x() - from.x();
-        int dy = to.y() - from.y();
-        if ((dx == 0) & (dy == 0)) return point.equals(from);
-        int dpx = point.x() - from.x();
-        int dpy = point.y() - from.y();
-        if (Math.abs(dpx) != Math.abs(dpy)) return false;
-        if (Math.abs(dpx) > Math.abs(dx)) return false;
-        if (dpx != 0 && Integer.signum(dpx) != Integer.signum(dx)) return false;
-        if (dpy != 0 && Integer.signum(dpy) != Integer.signum(dy)) return false;
+        int horizontalDelta = to.x() - from.x();
+        int verticalDelta = to.y() - from.y();
+        if ((horizontalDelta == 0) & (verticalDelta == 0)) return point.equals(from);
+        int pointHorizontalDisplacement = point.x() - from.x();
+        int pointVerticalDisplacement = point.y() - from.y();
+        if (Math.abs(pointHorizontalDisplacement) != Math.abs(pointVerticalDisplacement)) return false;
+        if (Math.abs(pointHorizontalDisplacement) > Math.abs(horizontalDelta)) return false;
+        if (pointHorizontalDisplacement != 0 && Integer.signum(pointHorizontalDisplacement) != Integer.signum(horizontalDelta)) return false;
+        if (pointVerticalDisplacement != 0 && Integer.signum(pointVerticalDisplacement) != Integer.signum(verticalDelta)) return false;
         return true;
     }
 
