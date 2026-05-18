@@ -1,0 +1,10 @@
+description: "truck.deleted.v1 — published to trucks.exchange when a truck is deleted (immediately for AVAILABLE trucks)"
+label: truck_deleted_v1
+input:
+  triggeredBy: publishTruckDeleted()
+outputMessage:
+  sentTo: trucks.exchange
+  body:
+    truckId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  headers:
+    contentType: "application/json"

@@ -1,0 +1,18 @@
+description: "delivery.completed.v1 — published to shipments.exchange when a truck arrives at the destination"
+label: delivery_completed_v1
+input:
+  triggeredBy: publishDeliveryCompleted()
+outputMessage:
+  sentTo: shipments.exchange
+  body:
+    shipmentId: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+    truckId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    items:
+      - productId: "wood"
+        quantity: 6
+    location:
+      x: 8
+      y: 2
+    completedAt: 5
+  headers:
+    contentType: "application/json"

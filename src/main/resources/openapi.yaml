@@ -12,6 +12,7 @@ info:
     - trucks.exchange + truck.registered.v1
     - trucks.exchange + truck.status.changed.v1
     - trucks.exchange + truck.position.updated.v1
+    - trucks.exchange + truck.deleted.v1
     - shipments.exchange + delivery.completed.v1
 
     Consumed by Transport:
@@ -84,6 +85,27 @@ paths:
                     x: 0
                     y: 0
                   status: AVAILABLE
+
+  /trucks/{id}:
+    delete:
+      summary: Delete a truck
+      description: |
+        Immediately deletes AVAILABLE trucks and publishes truck.deleted.v1 to trucks.exchange.
+        Marks IN_TRANSIT trucks for deletion; they are removed on delivery completion.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Truck deleted immediately (was AVAILABLE)
+        '202':
+          description: Deletion scheduled — truck is IN_TRANSIT, will be removed on return
+        '404':
+          description: Truck not found
 
 components:
   schemas:
