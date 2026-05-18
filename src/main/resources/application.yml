@@ -1,7 +1,14 @@
 logging:
   level:
+    root: INFO
     org.springframework.amqp: WARN
+    org.hibernate: WARN
+    org.springframework.web: WARN
+    com.zaxxer.hikari: WARN
+    liquibase: WARN
     com.gft.transport: INFO
+    com.gft.transport.delivery.infrastructure.messaging.TimeAdvancedListener: WARN
+    com.gft.transport.delivery.application.usecase.AdvanceTrucks: WARN
 
 spring:
   config:
@@ -61,13 +68,6 @@ spring:
     password: transport
 
 ---
-logging:
-  level:
-    root: WARN
-    com.gft.transport: INFO
-    com.gft.transport.delivery.infrastructure.messaging.TimeAdvancedListener: WARN
-    com.gft.transport.delivery.application.usecase.AdvanceTrucks: WARN
-
 spring:
   config:
     activate:
